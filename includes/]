@@ -1,0 +1,56 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   parser.h                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2016/04/28 21:50:54 by cchaumar          #+#    #+#             */
+/*   Updated: 2016/04/28 22:04:17 by cchaumar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#ifndef PARSER_H
+# include "rt.h"
+# define PARSER_H
+# define CONTAINER 1
+# define EMBEDDER 0
+# define	CONFIG_FILE "grammar/grammar.gr"
+# define RESERVED	" .-+xyz:"
+# define NUM_OBJS	5
+
+typedef struct	s_objs
+{
+	char	*obj_name;
+	int		type;
+}				t_objs;
+
+typedef struct	s_vec3f
+{
+	float	x;
+	float	y;
+	float	z;
+}				t_vec3f;
+
+typedef	struct	s_tags
+{
+	struct s_tags	*next;
+	struct s_tags	*prev;
+	struct s_tags	*tags;
+	char			*tag;
+	char			*attribute;
+	char			*content_text;
+	t_vec3f			*content;
+	int				type;
+}				t_tags;
+
+int		find_tag(char *src, char *tag);
+int		find_closing_tag(char *src, char *tag);
+t_tags	*list_tags(char *src);
+char	*ft_exterminate(char *src);
+
+void	ft_errors_denom_check(t_vec3f *boolean, char **truc);
+int		ft_check_denom_assign(char **truc, t_vec3f *boolean);
+float	ft_ftoa(char *str);
+
+#endif

@@ -1,0 +1,11 @@
+global : scene
+objs : point=0|sphere=1|cylinder=2|cone=3|plane=4
+attributes : position|color|direction|borders|light
+position : 3
+color : hex|dec
+direction :
+borders :
+light : color
+hex : 1
+dec : 3
+

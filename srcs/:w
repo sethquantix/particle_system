@@ -1,0 +1,99 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2016/04/20 10:08:54 by cchaumar          #+#    #+#             */
+/*   Updated: 2016/04/24 09:26:26 by cchaumar         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "rt.h"
+
+void	die(char *error, t_env *e)
+{
+	(void)e;
+	ft_printf("error :%s\n", error);
+	exit(EXIT_FAILURE);
+}
+
+void	set_e(t_env *e)
+{
+	cl_int				err;
+
+	glGenTextures(1, &(e->tex));
+	glBindTexture(GL_TEXTURE_2D, e->tex);
+	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, WIDTH, HEIGHT, 0,GL_RGB,
+			GL_UNSIGNED_BYTE, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glFinish();
+	e->img = clCreateFromGLTexture(e->context, CL_MEM_READ_WRITE,
+			GL_TEXTURE_2D, 0, e->tex, &err);
+	glBindTexture(GL_TEXTURE_2D, e->tex);
+	glViewport(0, 0, WIDTH, HEIGHT);
+	if (!e->img || err != CL_SUCCESS)
+		die("Failed to create OpenGL texture reference! %d\n", e);
+}
+
+void	interop(t_env *e)
+{
+	CGLContextObj		kCGLContext;
+	CGLShareGroupObj	kCGLShareGroup;
+	cl_props			properties[3];
+
+	if (SDL_Init(SDL_INIT_VIDEO) < 0)
+		die("couldn't start SDL", e);
+	if (!(e->info = SDL_GetVideoInfo()))
+		die("couldn't get info from SDL", e);
+	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8);
+	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8);
+	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8);
+	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16);
+	ft_printf("%d\n", e->info->vfmt->BitsPerPixel);
+	if (SDL_SetVideoMode(WIDTH, HEIGHT, e->info->vfmt->BitsPerPixel,
+				SDL_OPENGL | SDL_HWSURFACE) == 0)
+		die("couldn't create the window. Yeah, it's this bad.", e);
+	kCGLContext = CGLGetCurrentContext();
+	kCGLShareGroup = CGLGetShareGroup(kCGLContext);
+	properties[0] = CGL_APPLE;
+	properties[1] =(cl_props)kCGLShareGroup;
+	properties[2] = 0;
+	e->context = clCreateContext(properties, 0, NULL, NULL, 0, 0);
+	e->keys = SDL_GetKeyState(NULL);
+}
+
+void	loop(t_env *e)
+{
+	int			k;
+	SDL_Event	event;
+
+	(void)e;
+	k = 1;
+	while (k)
+	{
+		while (SDL_PollEvent(&event))
+		{
+			if (event.type == SDL_QUIT)
+				k = 0;
+			if (event.key.keysym.sym == SDL_KEYDOWN)
+				ft_printf("KEY STATE : %#04X\n", event.key.keysym.unicode);
+		}
+		handle(e, &k);
+	}
+}
+
+int		main(int ac, char **av)
+{
+	t_env		e;
+
+	(void)ac;
+	(void)av;
+	interop(&e);
+	set_e(&e);
+	loop(&e);
+	return (0);
+}
+

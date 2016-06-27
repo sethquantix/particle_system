@@ -1,0 +1,14 @@
+scene {needed:() valid:(sphere*any,plane*any,point*any,cone*any,cylinder*any,composite*any)}
+sphere {needed:(position*1,color*1) valid:(light*1,texture*1,borders*1)}
+plane {needed:(position*1,color*1,direction*1) valid:(light*1,texture*1,borders*1)}
+point {needed:(position*1,color*1) valid:(light*1)}
+cone {needed:(position*1,color*1,direction*1) valid:(texture*1,light*1,borders*1)}
+cylinder {needed:(position*1,color*1,direction*1) valid:(texture*1,light*1,borders*1)}
+color {needed:() valid:()}
+position {needed:() valid:()}
+direction {needed:() valid:()}
+borders {needed:() valid:()}
+type {needed:() valid:()}
+light {needed:(position*1,color*1) valid:()}
+texture {needed:() valid:()}
+composite {needed:() valid:(sphere*any,plane*any,point*any,cone*any,cylinder*any)}

@@ -6,7 +6,7 @@
 #    By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/02/23 12:31:27 by cchaumar          #+#    #+#              #
-#    Updated: 2016/04/29 20:31:25 by cchaumar         ###   ########.fr        #
+#    Updated: 2016/06/27 10:34:43 by cchaumar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,6 +15,7 @@ CFLG   =  -Wextra -Wall -Ofast -g -fsanitize=address
 FILES  = main.c loops.c vect.c init.c device.c parser.c parser_1.c parser_2.c parser_3.c parser_4.c parser_5.c parser_6.c parser_7.c
 SRCD   = srcs/
 OBJD   = objs/
+GITLIB = 'https://github.com\/sethquantix/libft.git'
 MLX    = -Lmlx -lmlx
 SRCS   = $(addprefix $(SRCD),$(FILES))
 OBJS   = $(addprefix $(OBJD),$(FILES:.c=.o))
@@ -28,8 +29,11 @@ all : $(NAME)
 $(OBJD)%.o:$(SRCD)%.c
 	gcc $(CFLG) $(INC) -c -o $@ $<
 
-$(NAME): $(OBJS)
+libft:
+		sh lib.sh
 		make -C libft
+
+$(NAME): $(OBJS) libft
 		make -C mlx
 		gcc $(CFLG) -o $(NAME) $(INC) $(OBJS) -Llibft -lft $(MLX) $(FRAMEWORKS)
 

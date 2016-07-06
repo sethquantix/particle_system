@@ -6,11 +6,11 @@
 /*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/04/27 07:12:19 by cchaumar          #+#    #+#             */
-/*   Updated: 2016/04/27 07:48:34 by cchaumar         ###   ########.fr       */
+/*   Updated: 2016/06/27 10:48:55 by cchaumar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "rt.h"
+#include "particle.h"
 
 void	info_device(cl_device_id device)
 {

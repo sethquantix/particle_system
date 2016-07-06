@@ -6,13 +6,14 @@
 #    By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/02/23 12:31:27 by cchaumar          #+#    #+#              #
-#    Updated: 2016/06/27 10:34:43 by cchaumar         ###   ########.fr        #
+#    Updated: 2016/06/30 19:08:28 by cchaumar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
-NAME   = rtv1
-CFLG   =  -Wextra -Wall -Ofast -g -fsanitize=address
-FILES  = main.c loops.c vect.c init.c device.c parser.c parser_1.c parser_2.c parser_3.c parser_4.c parser_5.c parser_6.c parser_7.c
+NAME   = particle
+CFLG   =  -Wextra -Wall -Ofast -g
+FILES  = main.c loops.c vect.c opencl.c device.c mat.c draw.c \
+		 vect2.c mat2.c keys.c key_funcs.c
 SRCD   = srcs/
 OBJD   = objs/
 GITLIB = 'https://github.com\/sethquantix/libft.git'
@@ -26,14 +27,15 @@ FRAMEWORKS = $(FROPEN) $(FRMCOS)
 
 all : $(NAME)
 
-$(OBJD)%.o:$(SRCD)%.c
+$(OBJD)%.o:$(SRCD)%.c includes/particle.h
+	@mkdir -p objs
 	gcc $(CFLG) $(INC) -c -o $@ $<
 
 libft:
 		sh lib.sh
-		make -C libft
 
-$(NAME): $(OBJS) libft
+$(NAME): $(libft) $(OBJS)
+		make -C libft
 		make -C mlx
 		gcc $(CFLG) -o $(NAME) $(INC) $(OBJS) -Llibft -lft $(MLX) $(FRAMEWORKS)
 

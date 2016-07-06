@@ -6,55 +6,33 @@
 /*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/04/20 10:08:54 by cchaumar          #+#    #+#             */
-/*   Updated: 2016/04/28 21:16:23 by cchaumar         ###   ########.fr       */
+/*   Updated: 2016/07/01 19:20:49 by cchaumar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "rt.h"
+#include "particle.h"
 
 void	die(char *error, t_env *e, int exit_code)
 {
 	ft_printf("%s%s\n", exit_code == EXIT_FAILURE ? "error : " : "", error);
-	if (e)
-	{
-		if (e->p_ray)
-			clReleaseProgram(e->p_ray);
-		if (e->p_photon)
-			clReleaseProgram(e->p_photon);
-		if (e->k_ray)
-			clReleaseKernel(e->k_ray);
-		if (e->k_photon)
-			clReleaseKernel(e->k_photon);
-		if (e->context)
-			clReleaseContext(e->context);
-	}
+	if (e->program)
+		clReleaseProgram(e->program);
+	if (e->particle)
+		clReleaseKernel(e->particle);
+	if (e->context)
+		clReleaseContext(e->context);
+	if (e->buf)
+		clReleaseMemObject(e->buf);
+	if (e->particles)
+		clReleaseMemObject(e->particles);
 	exit(exit_code);
-}
-
-void	gl_tex(t_env *e)
-{
-	cl_int				err;
-
-	glGenTextures(1, &(e->tex));
-	glBindTexture(GL_TEXTURE_2D, e->tex);
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, WIDTH, HEIGHT, 0,GL_RGB,
-			GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glFinish();
-	e->img = clCreateFromGLTexture(e->context, CL_MEM_READ_WRITE,
-			GL_TEXTURE_2D, 0, e->tex, &err);
-	if (err)
-		ft_printf("uh ? what was that again ? %d\n", err);
-	if (!e->img || err != CL_SUCCESS)
-		die("Failed to create OpenGL texture reference!", e, EXIT_FAILURE);
 }
 
 void	interop(t_env *e)
 {
 	CGLContextObj		kCGLContext;
 	CGLShareGroupObj	kCGLShareGroup;
-	cl_props			properties[3];
+	t_props			properties[3];
 	int					err;
 
 	if ((e->mlx = mlx_init()) == NULL)
@@ -64,33 +42,75 @@ void	interop(t_env *e)
 	kCGLContext = CGLGetCurrentContext();
 	kCGLShareGroup = CGLGetShareGroup(kCGLContext);
 	properties[0] = CGL_APPLE;
-	properties[1] =(cl_props)kCGLShareGroup;
+	properties[1] = (t_props)kCGLShareGroup;
 	properties[2] = 0;
 	e->context = clCreateContext(properties, 0, NULL, &notify, 0, &err);
- 	err = clGetGLContextInfoAPPLE(e->context, kCGLContext,
+ 	if (err)
+		ft_printf("Error : %d\n", err);
+	err = clGetGLContextInfoAPPLE(e->context, kCGLContext,
 		CL_CGL_DEVICE_FOR_CURRENT_VIRTUAL_SCREEN_APPLE,
 		sizeof(cl_device_id), &e->device, NULL);
+ 	if (err)
+		die("Error getting shared device", e, EXIT_FAILURE);
 	info_device(e->device);
 }
 
-int		main(int ac, char **av)
+void	functions(t_env *e)
 {
-	t_env		*e;
+	e->keys[0] = new_key(0xC, &move_cam); //Q
+	e->keys[1] = new_key(0xD, &move_cam); //W
+	e->keys[2] = new_key(0xE, &move_cam); //E
+	e->keys[3] = new_key(0x0, &move_cam); //A
+	e->keys[4] = new_key(0x1, &move_cam); //S
+	e->keys[5] = new_key(0x2, &move_cam); //D
+	e->keys[6] = new_key(0x07B, &rotate_cam); //LEFT
+	e->keys[7] = new_key(0X07D, &rotate_cam); //DOWN
+	e->keys[8] = new_key(0x07C, &rotate_cam); //RIGHT
+	e->keys[9] = new_key(0x07E, &rotate_cam); //UP
+}
 
-	(void)ac;
-	(void)av;
-	if ((e = ft_memalloc(sizeof(t_env))) == NULL)
-		die("couldn't allocate memory for env", e, EXIT_FAILURE);
-	if (ac < 2 || ft_strlen(av[1]) <= 3 || av[1][ft_strlen(av[1]) -1] != 'c' || av[1][ft_strlen(av[1]) - 2] != 's' || av[1][ft_strlen(av[1]) - 3] != '.')
-		die("bad or missing config file", e, EXIT_FAILURE);
-	parse(av[1], e);
-	interop(e);
-	gl_tex(e);
-	init(e);
-	mlx_hook(e->win, 2, 3, key_hook, e);
-	mlx_loop_hook(e->mlx, &loop, e);
+void	values(t_env *e)
+{
+	cl_float2	d;
+
+	e->buff = (int *)mlx_get_data_addr(e->img, &e->bpp, &e->szl, &e->end);
+	if ((e->data = ft_memalloc(sizeof(t_data))) == NULL)
+		die("Not enough memory", e, EXIT_FAILURE);
+	if ((e->keys = ft_memalloc(sizeof(t_key) * NUM_KEYS)) == NULL)
+		die("Not enough memory", e, EXIT_FAILURE);
+	e->rot = float3(0, 0, 0);
+	d = float2(tan(M_PI / 6), tan(M_PI / 6) * (float)HEIGHT / (float)WIDTH);
 	e->move = 1;
-	mlx_loop(e->mlx);
+	e->data->cam = float4(0, 0, -100, 100);
+	e->data->cam.w = length(float3(e->data->cam.x, e->data->cam.y,
+		e->data->cam.z));
+	e->data->g = float3(0.5f, 0.5f, 0.0f);
+	e->corners[0] = float3(-d.x, d.y, 1);
+	e->corners[1] = float3(d.x, d.y, 1);
+	e->corners[2] = float3(-d.x, -d.y, 1);
+	e->data->w = WIDTH;
+	e->data->h = HEIGHT;
+	functions(e);
+}
+
+int		main(void)
+{
+	t_env		e;
+
+	if ((e.mlx = mlx_init()) == NULL)
+		die("couldn't start mlx", &e, EXIT_FAILURE);
+	if ((e.win = mlx_new_window(e.mlx, WIDTH, HEIGHT, "particle")) == NULL)
+		die("Window broke.", &e, EXIT_FAILURE);
+	if ((e.img = mlx_new_image(e.mlx, WIDTH, HEIGHT)) == NULL)
+		die("Not enough memory", &e, EXIT_FAILURE);
+	values(&e);
+	opencl_init(&e);
+	ft_printf("max texture size : %zu\n",GL_MAX_TEXTURE_SIZE);
+	mlx_hook(e.win, KeyPress, KeyPressMask, &key_press, &e);
+	mlx_hook(e.win, KeyRelease, KeyReleaseMask, &key_release, &e);
+	mlx_hook(e.win, 6, 64, &mouse_free_hook, &e);
+	mlx_loop_hook(e.mlx, &loop, &e);
+	mlx_loop(e.mlx);
 	return (0);
 }
 

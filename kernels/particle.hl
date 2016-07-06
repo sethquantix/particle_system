@@ -1,0 +1,21 @@
+typedef struct		s_particle
+{
+	int2		m;
+	float3		p;
+	float3		v;
+	float3		a;
+	float		lc;
+}					t_particle;
+
+typedef struct		s_data
+{
+	float4		cam;
+	float3		dir;
+	float3		corners[3];
+	float3		g;
+	float3		mat[3];
+	int			w;
+	int			h;
+}					t_data;
+
+#define SCALE	5000.0f

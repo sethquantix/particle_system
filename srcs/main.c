@@ -85,6 +85,13 @@ void	values(t_env *e)
 	e->data->cam.w = length(float3(e->data->cam.x, e->data->cam.y,
 		e->data->cam.z));
 	e->data->g = float3(0.5f, 0.5f, 0.0f);
+	e->data->old_g = float3(0.5f, 0.5f, 0.0f);
+
+//	e->data->reference_density = 1000.0f;
+//	e->data->bulk_modulus = pow(10, 3);
+//	e->data->viscosity = 0.1f;
+//	e->data->gravity_strength = 9.8f;
+
 	e->corners[0] = float3(-d.x, d.y, 1);
 	e->corners[1] = float3(d.x, d.y, 1);
 	e->corners[2] = float3(-d.x, -d.y, 1);

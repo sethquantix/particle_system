@@ -6,6 +6,9 @@ typedef struct		s_particle
 	float3		a;
 	float3		lorenz;
 	float		lc;
+
+	float		mass;
+	float		density;
 }					t_particle;
 
 typedef struct		s_data
@@ -14,10 +17,14 @@ typedef struct		s_data
 	float3		dir;
 	float3		corners[3];
 	float3		g;
-	float3		old_g;
 	float3		mat[3];
 	int			w;
 	int			h;
+
+	float		reference_density;
+	float		bulk_modulus;
+	float		viscosity;
+	float		gravity_strength;
 }					t_data;
 
 #define SCALE	5000.0f

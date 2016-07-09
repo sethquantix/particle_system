@@ -59,37 +59,28 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	float3		g;
 	float		r = length(cam);
 	float		d = r;
-	float		rel_mov = ((pow(data->old_g.x - data->g.x, 2)) + (pow(data->old_g.y - data->g.y, 2)));
 
 	c[0] = data->corners[0] * d + cam;
 	c[1] = data->corners[1] * d + cam;
 	c[2] = data->corners[2] * d + cam;
 	v1 = c[1] - c[0];
 	v2 = c[2] - c[0];
-	p.lorenz.x = 3.0f * (p.v.y - p.v.x);
-	p.lorenz.y = (p.v.x * (28.0f - p.v.z) - p.v.y);
-	p.lorenz.z = (p.v.x * p.v.y - (8.0f / 3.0f) * p.v.z);
+	p.lorenz.x = 3.0f * (p.p.y - p.p.x);
+	p.lorenz.y = (p.p.x * (28.0f - p.p.z) - p.p.y);
+	p.lorenz.z = (p.p.x * p.p.y - (8.0f / 3.0f) * p.p.z);
 	p.lorenz *= 0.001f;
 	
 	//p.lorenz.x = sin(2.24f * p.p.y) - p.lorenz.z * cos(0.43f * p.p.x);
 	//p.lorenz.y = p.lorenz.z * sin(-0.65f * p.p.x) - cos(-2.43f * p.p.y);
 	//p.lorenz.z = sin(p.p.x*p.p.y);
 
-	g = c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y)) ;//+ cbrt(p.lorenz) * 6.0f;
+	g = c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y));
 //	g = v1 * p.lorenz.x + v2 * p.lorenz.y;
-	g = g * (cbrt(p.lorenz));
-	
 	img[p.m.x + p.m.y * data->w] = 0;
-	p.a = r * 0.001f * (((g - p.p))) / (1.1f + dot((g - p.p), (g - p.p)));
-	p.v += p.a;
-//	p.v = p.v /(1.0f+(g - p.p)*rel_mov*1000.0f);
-	//p.a = r * 10.0f * (p.lorenz) / (0.01f + dot(p.p, p.p));
-	//p.v = p.a;
+	p.a = r * 10.0f * (p.lorenz) / 1500.0f;//(0.01f + dot(p.p, p.p));
+	p.v = p.a;
 	//p.v += r * 0.1f * (g - p.p) / (0.01f + dot(g - p.p, g - p.p)); // grand galop spiralien
-//	if (rel_mov > 0.000009f)
-		p.p += p.v ;
-//	else
-//		p.p -= p.v ;
+	p.p += p.v ;
 	k = normalize(p.p - cam);
 	k = p.p - dot(cam + data->dir * d, data->dir) * data->dir;
 	p.m = (int2)((int)(data->w * dot(k - c[0], normalize(v1)) / length(v1)),
@@ -97,16 +88,15 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	r = length(p.p - g);
 	col = (float3)(clamp(1.0f - r / d, 0.0f, 1.0f));
 	col.x = (1.0f - col.x) * 360.0f;
-
-//	col = (float3)(1.0f, 1.0f, 1.0f);
+	//col = (float3)(1.0f,1.0f,1.0f);
 	if (p.m.x >= 0 && p.m.x < data->w && p.m.y >= 0 && p.m.y < data->h &&
 		dot(data->dir, p.p - cam) > 0)
 		img[p.m.x + p.m.y * data->w] = hsv(col);
 	else
 		p.m = (int2)(0);
 	particles[x + y * l] = p;
-	if (x == 0 && y == 0 && 1 == 1)
-	{printf("rel_mov == %f, old_g.x == %f, old_g.u == %f, g.x == %f, g.y == %f\n", rel_mov, data->old_g.x, data->old_g.y, data->g.x, data->g.y);
+//	if (x == 0 && y == 0 && 1 == 1)
+//	{printf("DOT == %f\n", dot(p.p, p.p));
 //		printf("dir : %5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f | %5.2f %5.2f\n",
 //			data->dir.x, data->dir.y, data->dir.z, g.x, g.y, g.z,
 //			dot(k - c[0], normalize(v1)) / length(v1),
@@ -121,5 +111,5 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 //			v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
 //		printf("%5.2f %5.2f %5.2f | %d %d | %5.2f %5.2f %5.2f\n",
 //			k.x, k.y, k.z, p.m.x, p.m.y);
-	}
+//	}
 }

@@ -51,6 +51,9 @@ typedef struct					s_particle
 	cl_float3			a;
 	cl_float3			lorenz;
 	float				lc;
+
+	cl_float			mass;
+	cl_float			densitie;
 }								t_particle;
 
 typedef struct					s_data
@@ -59,10 +62,14 @@ typedef struct					s_data
 	cl_float3			dir;
 	cl_float3			corners[3];
 	cl_float3			g;
-	cl_float3			old_g;
 	cl_float3			mat[3];
 	int					w;
 	int					h;
+
+	cl_float			reference_density;
+	cl_float			bulk_modulus;
+	cl_float			viscosity;
+	cl_float			gravity_strength;
 }								t_data;
 
 typedef struct					s_key

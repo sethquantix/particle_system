@@ -43,6 +43,7 @@ int		mouse_free_hook(int x, int y, t_env *e)
 	cl_float2			k;
 
 	k = float2((float)x / (float)WIDTH, (float)y / (float)HEIGHT);
+	e->data->old_g = e->data->g;
 	e->data->g = float3(k.x, 1.0f - k.y, 0.0f);
 	return (0);
 }

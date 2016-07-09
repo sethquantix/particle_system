@@ -14,7 +14,6 @@ typedef struct		s_data
 	float3		dir;
 	float3		corners[3];
 	float3		g;
-	float3		old_g;
 	float3		mat[3];
 	int			w;
 	int			h;

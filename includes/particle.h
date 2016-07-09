@@ -6,7 +6,7 @@
 /*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/06/27 10:53:29 by cchaumar          #+#    #+#             */
-/*   Updated: 2016/07/06 13:25:00 by cchaumar         ###   ########.fr       */
+/*   Updated: 2016/07/09 14:30:31 by cchaumar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,17 +35,18 @@
 # define RAD		M_PI / 180.0
 # define UGLY		void CL_CALLBACK
 # define KERNEL		"kernels/particle.cl"
-# define GLOBAL		1024
+# define GLOBAL		2048
 # define NUM_P		GLOBAL * GLOBAL
 # define NUM_KEYS	10
-# define SPEED		1
+# define SPEED		20
 # define RAD_SPEED	1
+# define FLOW		1
 
 typedef UGLY					t_callback;
 
 typedef struct					s_particle
 {
-	cl_int2				m;
+	cl_int2				m[FLOW];
 	cl_float3			p;
 	cl_float3			v;
 	cl_float3			a;

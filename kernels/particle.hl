@@ -1,6 +1,11 @@
+#define FLOW	1
+#define SCALE	5000.0f
+#define RAD		180.0f / 3.14f
+#define LORENZ	1
+
 typedef struct		s_particle
 {
-	int2		m;
+	int2		m[FLOW];
 	float3		p;
 	float3		v;
 	float3		a;
@@ -20,4 +25,3 @@ typedef struct		s_data
 	int			h;
 }					t_data;
 
-#define SCALE	5000.0f

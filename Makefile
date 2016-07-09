@@ -6,7 +6,7 @@
 #    By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2016/02/23 12:31:27 by cchaumar          #+#    #+#              #
-#    Updated: 2016/06/30 19:08:28 by cchaumar         ###   ########.fr        #
+#    Updated: 2016/07/09 12:36:10 by cchaumar         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -25,7 +25,7 @@ FROPEN = -framework OpenGL -framework OpenCL
 FRMCOS = -framework Appkit
 FRAMEWORKS = $(FROPEN) $(FRMCOS)
 
-all : $(NAME)
+all : libft $(NAME)
 
 $(OBJD)%.o:$(SRCD)%.c includes/particle.h
 	@mkdir -p objs
@@ -34,7 +34,7 @@ $(OBJD)%.o:$(SRCD)%.c includes/particle.h
 libft:
 		sh lib.sh
 
-$(NAME): $(libft) $(OBJS)
+$(NAME): $(OBJS) libft
 		make -C libft
 		make -C mlx
 		gcc $(CFLG) -o $(NAME) $(INC) $(OBJS) -Llibft -lft $(MLX) $(FRAMEWORKS)

@@ -35,7 +35,7 @@
 # define RAD		M_PI / 180.0
 # define UGLY		void CL_CALLBACK
 # define KERNEL		"kernels/particle.cl"
-# define GLOBAL		1024
+# define GLOBAL		2048
 # define NUM_P		GLOBAL * GLOBAL
 # define NUM_KEYS	10
 # define SPEED		1
@@ -74,9 +74,11 @@ typedef struct					s_key
 
 typedef struct					s_env
 {
+	GLuint				framebuffer;
+	unsigned int		texture[1];
 	void				*mlx;
 	void				*win;
-	void				*img;
+	cl_image			img;
 	int					bpp;
 	int					szl;
 	int					end;
@@ -86,17 +88,35 @@ typedef struct					s_env
 	cl_command_queue	queue;
 	cl_program			program;
 	cl_mem				particles;
+	cl_mem				pos_par;
+	cl_mem				acc_par;
+	cl_mem				spd_par;
+	cl_mem				lc_par;
+	cl_mem				m_par;
+	cl_mem				mass;
 	cl_mem				buf;
 	cl_mem				cl_data;
+	cl_mem				timer;
 	int					*buff;
+	void				*img_affich;
+	int					*buf_affich;
+	//int					buff_tt[NUM_P];
 	cl_kernel			particle;
 	cl_float3			rot;
 	char				*source;
 	size_t				global[2];
 	size_t				local[2];
 	t_data				*data;
+	t_data				data_tt;
 	cl_float3			corners[3];
 	t_key				*keys;
+	t_key				keys_tt[NUM_KEYS];
+//	cl_float	mass_ss[NUM_P];
+//	cl_float3	part_tt[NUM_P];
+//	cl_float3	acc_tt[NUM_P];
+//	cl_float3	spd_tt[NUM_P];
+//	cl_float	lc_tt[NUM_P];
+//	cl_uint2	m_tt[NUM_P];
 }								t_env;
 
 typedef cl_context_properties	t_props;

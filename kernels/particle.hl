@@ -21,3 +21,5 @@ typedef struct		s_data
 }					t_data;
 
 #define SCALE	5000.0f
+#define GLOBAL	2048
+#define NUM_P	GLOBAL*GLOBAL

@@ -12,19 +12,19 @@ __kernel void init(uint2 seed, __global float3 *pos_par, __global float3 *acc_pa
 	float t = ((float)x / (float)l) * 2.0f * M_PI;
 	float d = ((float)y / (float)h) * 2.0f * M_PI;
 //	pos_par[ind] = (float3)(10.0f*cos(d)*cos(t), 10.0f*cos(d)*sin(t), 10.0f*cos(d*t)*sin(t*d)); // crab
-	pos_par[ind] = (float3)(-5.0f + 10.0f * (float)x/(float)h*2.0f, -5.0f + 10.0f * (float)y/(float)l*2.0f, -5.0f + 10.0f * ((float)(cos((float)x*x*x)*cos((float)y*y*y)))); // cube
-//	pos_par[ind] = (float3)( 10.0f*sin(t)*cos(d), 10.0f*sin(t)*sin(d), 10.0f*cos(t)); // sphere
+//	pos_par[ind] = (float3)((float)x/(float)h*2.0f, (float)y/(float)l*2.0f, ((float)(cos((float)x*x*x)*cos((float)y*y*y)))); // cube
+	pos_par[ind] = (float3)( 10.0f*sin(t)*cos(d), 10.0f*sin(t)*sin(d), 10.0f*cos(t)); // sphere
 //	pos_par[ind] = (float3)((float)x/(float)h*2.0f, (float)y/(float)l*2.0f,  (cbrt((float)((x*x*x)*(y*y*y))))/(float)(h)); // sandwich
 
 //	spd_par[ind] = 0.1f * (float3)(10.0f*cos(d) * cos(t), -10.0f*cos(d) * sin(t), 10.0f*sin(t));
 	spd_par[ind] = (float3)(0.0f);
-//	spd_par[ind] = 0.01f * (float3)(pos_par[ind].y, -pos_par[ind].x, pos_par[ind].z);
+//	spd_par[ind] = 0.1f * (float3)(pos_par[ind].y, -pos_par[ind].x, pos_par[ind].z);
 	acc_par[ind] = (float3)(0.0f);
 	m_par[ind] = (int2)(0);
 	a = a ^ (a << 11);
 	a = seed.y ^ (seed.y >> 19) ^ (a ^ (a >> 8));
 	lc_par[ind] = (1.0f + (float)a / (float)(2 ^ 32 - 1)) / 2.0f;
-	col[ind] = (float3)(clamp(1.0f - (float)(ind)/(GLOBAL + GLOBAL * l), 0.0f, 1.0f));
+	col[ind] = (float3)(clamp(1.0f - (float)(ind)/(GLOBAL + GLOBAL * l) + 0.5f, 0.0f, 1.0f));
 	col[ind].x = (1.0f - col[ind].x) * 360.0f;
 }
 
@@ -49,7 +49,7 @@ int		hsv(float3 c)
 #define RAD 180.0f / 3.14f
 
 __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __global float3 *spd_par, __global float *lc_par, __global int2 *m_par, __global float3 *col, 
-	__constant t_data *data, __write_only image2d_t img, __constant long *timer)
+	__constant t_data *data, __global int *img)
 {
 	int			x = get_global_id(0);
 	int			y = get_global_id(1);
@@ -57,6 +57,7 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 	int			h = get_global_size(1);
 	int			ind = x + y * l;
 	float3		k;
+//	float3		col;
 	float3		cam = data->cam.xyz;
 	float3		c[3];
 	float3		v1;
@@ -78,11 +79,10 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 	v1 = c[1] - c[0];
 	v2 = c[2] - c[0];
 
-//	img[m_m[0] + m_m[1] * data->w] = 0;
-	write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)0);
+	img[m_m[0] + m_m[1] * data->w] = 0;
 	float3	s = dot(vit, vit) * vit;
 
-	g = c[0] + (v1 * ((data->g.x)+cbrt(cos((float)timer[0]/10.0f)/5.0f)/10.0f)) + (v2 * ((data->g.y+cbrt(sin((float)timer[0]/10.0f)/5.0f)/10.0f)));
+	g = c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y));
 //	g.y = -g.y;
 //	g.x = -g.x;
 	r = dot((float3)clamp(g - p, 0.0f, 1.0f), ((float3)clamp(g - p, 0.0f, 1.0f)));
@@ -97,19 +97,31 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 //	else
 //		p -= vit ;
 
-	p += (vit);
+	p += 0.1f*vit;
 
+	int	j = 0;
+
+	while (++j < NUM_P)
+	{
+	barrier(CLK_GLOBAL_MEM_FENCE);
+	barrier(CLK_LOCAL_MEM_FENCE);
+		if (ind != j && (fabs(pos_par[j].x - p.x) < 0.000110f) && (fabs(pos_par[j].y - p.y) < 0.000110f) && (fabs(pos_par[j].z - p.z) < 0.000110f))
+		{
+			//printf("HELLOOOOO, %f, %f, %f\n", pos_par[j].x-p.x, pos_par[j].y-p.y, pos_par[j].z-p.z);
+			vit += ( - spd_par[j]);
+			//col_p = col_p / 2.0f + col[j] / 2.0f;
+		}
+	}
 	k = normalize(p - cam);
 	k = p - dot(cam + data->dir * d, data->dir) * data->dir;
 	m_m = (int2)((int)(data->w * dot(k - c[0], normalize(v1)) / length(v1)),
 		(int)(data->h * (1.0f - dot(k - c[0], normalize(v2)) / length(v2))));
 	r = length(p - g);
-
-//printf("color is : %d\n", hsv(col_p));
+//	col = (float3)(1.0f, 1.0f, 1.0f);
 
 	if (m_m[0] >= 0 && m_m[0] < data->w && m_m[1] >= 0 && m_m[1] < data->h &&
 		dot(data->dir, p - cam) > 0)
-		write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)hsv(col_p));//img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
+		img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
 	else
 		m_m = (int2)(0);
 
@@ -119,7 +131,7 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 		m_par[ind] = m_m;
 		col[ind] = col_p;
 
-	if (x == 0 && y == 0)printf("timer[0] == %lf\n", (float)timer[0]);//printf("r==%f, ex==%f, ey==%f, ez==%f, eX/r==%f, eY/r==%f, eZ/r==%f\n", r, e.x, e.y, e.z, e.x / r, e.y / r, e.z / r);
+//	if (x == 0 && y == 0 && 1 == 1)printf("r==%f, ex==%f, ey==%f, ez==%f, eX/r==%f, eY/r==%f, eZ/r==%f\n", r, e.x, e.y, e.z, e.x / r, e.y / r, e.z / r);
 //	{printf("rel_mov == %f, old_g.x == %f, old_g.u == %f, g.x == %f, g.y == %f\n", rel_mov, data->old_g.x, data->old_g.y, data->g.x, data->g.y);
 //		printf("dir : %5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f | %5.2f %5.2f\n",
 //			data->dir.x, data->dir.y, data->dir.z, g.x, g.y, g.z,

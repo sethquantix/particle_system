@@ -35,4 +35,5 @@ void	info_device(cl_device_id device)
 	data = ft_memalloc(size);
 	clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, size, data, NULL);
 	ft_printf("{CGRN4 : available extensions : }\t\t\t{CMAG%s\n}", data);
+	free(data);
 }

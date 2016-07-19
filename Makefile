@@ -11,7 +11,7 @@
 # **************************************************************************** #
 
 NAME   = particle
-CFLG   =  -Wextra -Wall -Ofast -g
+CFLG   =  -Wextra -Wall -g
 FILES  = main.c loops.c vect.c opencl.c device.c mat.c draw.c \
 		 vect2.c mat2.c keys.c key_funcs.c
 SRCD   = srcs/

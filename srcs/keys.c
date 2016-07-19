@@ -18,5 +18,6 @@ t_key	new_key(int keycode, void (*f)(int, void *))
 
 	key.keycode = keycode;
 	key.f = f;
+	key.pressed = 0;
 	return (key);
 }

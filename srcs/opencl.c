@@ -19,6 +19,7 @@ static void			get_source(t_env *e)
 	int		fd;
 
 	source = NULL;
+	buff = NULL;
 	if ((fd = open(KERNEL, O_RDONLY)) == -1)
 		die("couldnt load kernel.", e, EXIT_FAILURE);
 	while (get_next_line(fd, &buff) != 0)
@@ -50,10 +51,24 @@ static void			init_kernels(t_env *e)
 	seed.y = 1354343545;
 	init = clCreateKernel(e->program, "init", &err);
 	e->particle = clCreateKernel(e->program, "particle", &err);
-	clSetKernelArg(e->particle, 0, sizeof(cl_mem), &e->particles);
-	clSetKernelArg(init, 0, sizeof(cl_mem), &e->particles);
-	clSetKernelArg(init, 1, sizeof(cl_uint2), &seed);
-	clSetKernelArg(e->particle, 3, sizeof(cl_mem), &e->buf);
+
+	clSetKernelArg(e->particle, 0, sizeof(cl_mem), &e->pos_par);
+	clSetKernelArg(e->particle, 1, sizeof(cl_mem), &e->acc_par);
+	clSetKernelArg(e->particle, 2, sizeof(cl_mem), &e->spd_par);
+	clSetKernelArg(e->particle, 3, sizeof(cl_mem), &e->lc_par);
+	clSetKernelArg(e->particle, 4, sizeof(cl_mem), &e->m_par);
+	clSetKernelArg(e->particle, 5, sizeof(cl_mem), &e->mass);
+
+	clSetKernelArg(init, 1, sizeof(cl_mem), &e->pos_par);
+	clSetKernelArg(init, 2, sizeof(cl_mem), &e->acc_par);
+	clSetKernelArg(init, 3, sizeof(cl_mem), &e->spd_par);
+	clSetKernelArg(init, 4, sizeof(cl_mem), &e->lc_par);
+	clSetKernelArg(init, 5, sizeof(cl_mem), &e->m_par);
+	clSetKernelArg(init, 6, sizeof(cl_mem), &e->mass);
+
+	clSetKernelArg(init, 0, sizeof(cl_uint2), &seed);
+	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->img);
+	clSetKernelArg(e->particle, 8, sizeof(cl_mem), &e->timer);
 	if (err)
 		die("Couldnt create buffer on VRAM. Cause reasons.", e, EXIT_FAILURE);
 	ft_printf("{CGRNVRAM buffer allocated.\n}");
@@ -76,17 +91,31 @@ static void			opencl_memory(t_env *e)
 	if ((e->program = clCreateProgramWithSource(e->context, 1,
 		(const char **)(&e->source), NULL, NULL)) == NULL)
 		die("couldnt create program.", e, EXIT_FAILURE);
+	free(e->source);
 	ft_printf("{CGRNPRogram created from sources.\n}");
-	if (clBuildProgram(e->program, 0, NULL, "-I kernels", NULL, NULL))
+	if (clBuildProgram(e->program, 0, NULL, "-I kernels -cl-fast-relaxed-math", NULL, NULL))
 		die("Couldnt build program.", e, EXIT_FAILURE);
 	ft_printf("{CGRNProgram successfully built\n}");
-	e->particles = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
-			sizeof(t_particle) * NUM_P, NULL, &err);
-	e->buf = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
-			sizeof(int) * WIDTH * HEIGHT, NULL, &err);
-	e->cl_data = clCreateBuffer(e->context, CL_MEM_READ_ONLY,
+
+	e->pos_par = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_float3) * NUM_P, NULL, &err);
+	e->acc_par = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_float3) * NUM_P, NULL, &err);
+	e->spd_par = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_float3) * NUM_P, NULL, &err);
+	e->lc_par = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_float) * NUM_P, NULL, &err);
+	e->m_par = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_uint2) * NUM_P, NULL, &err);
+	e->mass = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_float3) * NUM_P, NULL, &err);
+
+	e->cl_data = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(t_data), NULL, &err);
+	e->timer = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_long), NULL, &err);
 	init_kernels(e);
+
 }
 
 void				opencl_init(t_env *e)
@@ -102,8 +131,7 @@ void				opencl_init(t_env *e)
 	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &e->device, NULL))
 		die("GPU not detected by opencl. Now that's new", e, EXIT_FAILURE);
 	ft_printf("{CGRNGPU detected.\n");
-	if (!(e->context = clCreateContext(0, 1, &e->device, &notify, NULL, &err)))
-		die("Couldnt create opencl context.", e, EXIT_FAILURE);
+
 	info_device(e->device);
 	e->global[0] = GLOBAL;
 	e->global[1] = GLOBAL;

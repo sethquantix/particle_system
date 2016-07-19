@@ -66,5 +66,7 @@ int		loop(t_env *e)
 		ft_printf("FPS : %d\n", fcount);
 		fcount = 0;
 	}
+//	e->data->g.x += 0.1f*cos(3.14f*(end.tv_usec/10000.0f)/180.0f);
+//	e->data->g.y += 0.1f*sin(3.14f*(end.tv_usec/10000.0f)/180.0f);
 	return (0);
 }

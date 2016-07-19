@@ -25,34 +25,13 @@ void	die(char *error, t_env *e, int exit_code)
 		clReleaseMemObject(e->buf);
 	if (e->particles)
 		clReleaseMemObject(e->particles);
+	if (e->img)
+		mlx_destroy_image(e->mlx, e->img_affich);
+	if (e->win)
+		mlx_destroy_window(e->mlx, e->win);
+	if (e->mlx)
+		free(e->mlx);
 	exit(exit_code);
-}
-
-void	interop(t_env *e)
-{
-	CGLContextObj		kCGLContext;
-	CGLShareGroupObj	kCGLShareGroup;
-	t_props			properties[3];
-	int					err;
-
-	if ((e->mlx = mlx_init()) == NULL)
-		die("couldn't start mlx", e, EXIT_FAILURE);
-	if ((e->win = mlx_new_opengl_window(e->mlx, WIDTH, HEIGHT, "RT")) == NULL)
-		die("Couldn't open a window. I know, it's sad.", e, EXIT_FAILURE);
-	kCGLContext = CGLGetCurrentContext();
-	kCGLShareGroup = CGLGetShareGroup(kCGLContext);
-	properties[0] = CGL_APPLE;
-	properties[1] = (t_props)kCGLShareGroup;
-	properties[2] = 0;
-	e->context = clCreateContext(properties, 0, NULL, &notify, 0, &err);
- 	if (err)
-		ft_printf("Error : %d\n", err);
-	err = clGetGLContextInfoAPPLE(e->context, kCGLContext,
-		CL_CGL_DEVICE_FOR_CURRENT_VIRTUAL_SCREEN_APPLE,
-		sizeof(cl_device_id), &e->device, NULL);
- 	if (err)
-		die("Error getting shared device", e, EXIT_FAILURE);
-	info_device(e->device);
 }
 
 void	functions(t_env *e)
@@ -73,11 +52,15 @@ void	values(t_env *e)
 {
 	cl_float2	d;
 
-	e->buff = (int *)mlx_get_data_addr(e->img, &e->bpp, &e->szl, &e->end);
-	if ((e->data = ft_memalloc(sizeof(t_data))) == NULL)
-		die("Not enough memory", e, EXIT_FAILURE);
-	if ((e->keys = ft_memalloc(sizeof(t_key) * NUM_KEYS)) == NULL)
-		die("Not enough memory", e, EXIT_FAILURE);
+	e->buff = (int *)malloc(sizeof(int) * WIDTH * HEIGHT);//(int *)mlx_get_data_addr(e->img, &e->bpp, &e->szl, &e->end);
+	//int i = -1;
+	//while(++i < WIDTH*HEIGHT)
+	//{
+	//	printf("essai : i == %d\n", i);
+	//	e->buff[i] = 0;
+	//}
+	e->data = &e->data_tt;
+	e->keys = e->keys_tt;
 	e->rot = float3(0, 0, 0);
 	d = float2(tan(M_PI / 6), tan(M_PI / 6) * (float)HEIGHT / (float)WIDTH);
 	e->move = 1;
@@ -86,12 +69,6 @@ void	values(t_env *e)
 		e->data->cam.z));
 	e->data->g = float3(0.5f, 0.5f, 0.0f);
 	e->data->old_g = float3(0.5f, 0.5f, 0.0f);
-
-//	e->data->reference_density = 1000.0f;
-//	e->data->bulk_modulus = pow(10, 3);
-//	e->data->viscosity = 0.1f;
-//	e->data->gravity_strength = 9.8f;
-
 	e->corners[0] = float3(-d.x, d.y, 1);
 	e->corners[1] = float3(d.x, d.y, 1);
 	e->corners[2] = float3(-d.x, -d.y, 1);
@@ -100,16 +77,79 @@ void	values(t_env *e)
 	functions(e);
 }
 
+void	interop(t_env *e)
+{
+	CGLContextObj		kCGLContext;
+	CGLShareGroupObj	kCGLShareGroup;
+	t_props			properties[3];
+	int					err;
+
+	if ((e->mlx = mlx_init()) == NULL)
+		die("couldn't start mlx", e, EXIT_FAILURE);
+	if ((e->win = mlx_new_opengl_window(e->mlx, WIDTH, HEIGHT, "particles")) == NULL)
+		die("Couldn't open a window. I know, it's sad.", e, EXIT_FAILURE);
+	mlx_opengl_window_set_context(e->win);
+	kCGLContext = CGLGetCurrentContext();
+	kCGLShareGroup = CGLGetShareGroup(kCGLContext);
+	properties[0] = CGL_APPLE;
+	properties[1] = (t_props)kCGLShareGroup;
+	properties[2] = 0;
+	e->context = clCreateContext(properties, 0, NULL, &notify, 0, &err);
+ 	if (err)
+		ft_printf("Error : %d\n", err);
+	err = clGetGLContextInfoAPPLE(e->context, kCGLContext,
+		CL_CGL_DEVICE_FOR_CURRENT_VIRTUAL_SCREEN_APPLE,
+		sizeof(cl_device_id), &e->device, NULL);
+ 	if (err)
+		die("Error getting shared device", e, EXIT_FAILURE);
+
+glGenFramebuffers(1, &e->framebuffer);
+glBindFramebuffer(GL_FRAMEBUFFER, e->framebuffer);
+
+
+	//glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &e->texture[0]);
+	glBindTexture(GL_TEXTURE_2D, e->texture[0]);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_INT, NULL);
+
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, e->texture[0], 0);
+
+//GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+//glDrawBuffers(1, DrawBuffers);
+//
+glBindFramebuffer(GL_FRAMEBUFFER, e->framebuffer);
+//glViewport(0, 0, WIDTH, HEIGHT);
+
+	int	ret;
+	e->img = clCreateFromGLTexture(e->context, CL_MEM_READ_WRITE, GL_TEXTURE_2D, 0, e->texture[0], &ret);
+	printf("AXAXAXA\n");
+	if (!e->img)
+		printf("u dun goofd m8\n");
+	if (ret)
+		printf("Could not create Tex2D, error : %d\n", ret);
+	e->buf = clCreateBuffer(e->context, CL_MEM_READ_WRITE, sizeof(cl_int) * WIDTH * HEIGHT, NULL, &ret);
+	if (ret)
+		printf("Could not create CLBuffer, error : %d\n", ret);
+
+	//info_device(e->device);
+}
+
 int		main(void)
 {
 	t_env		e;
 
-	if ((e.mlx = mlx_init()) == NULL)
-		die("couldn't start mlx", &e, EXIT_FAILURE);
-	if ((e.win = mlx_new_window(e.mlx, WIDTH, HEIGHT, "particle")) == NULL)
-		die("Window broke.", &e, EXIT_FAILURE);
-	if ((e.img = mlx_new_image(e.mlx, WIDTH, HEIGHT)) == NULL)
-		die("Not enough memory", &e, EXIT_FAILURE);
+	//if ((e.mlx = mlx_init()) == NULL)
+	//	die("couldn't start mlx", &e, EXIT_FAILURE);
+	//if ((e.win = mlx_new_window(e.mlx, WIDTH, HEIGHT, "particle")) == NULL)
+	//	die("Window broke.", &e, EXIT_FAILURE);
+	interop(&e);
+	//if ((e.img = mlx_new_image(e.mlx, WIDTH, HEIGHT)) == NULL)
+	//	die("Not enough memory", &e, EXIT_FAILURE);
+	e.img_affich = mlx_new_image(e.mlx, WIDTH, HEIGHT);
+	e.buf_affich = (int *)mlx_get_data_addr(e.img_affich, &e.bpp, &e.szl, &e.end);
 	values(&e);
 	opencl_init(&e);
 	ft_printf("max texture size : %zu\n",GL_MAX_TEXTURE_SIZE);

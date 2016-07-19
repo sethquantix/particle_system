@@ -37,6 +37,9 @@ void do_loop_flush(CFRunLoopObserverRef observer, CFRunLoopActivity activity, vo
     }
 }
 
+
+
+
 void *mlx_init()
 {
   mlx_ptr_t	*new_mlx;
@@ -64,6 +67,7 @@ void *mlx_init()
   (void) TransformProcessType(&psn, kProcessTransformToForegroundApplication);
   usleep(100000);
   [[NSRunningApplication currentApplication] activateWithOptions:NSApplicationActivateIgnoringOtherApps];
+
   // load font
   new_mlx->font = mlx_new_image(new_mlx, (FONT_WIDTH+2)*95, FONT_HEIGHT);
   i = 0;

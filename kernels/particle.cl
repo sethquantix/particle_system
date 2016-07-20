@@ -65,13 +65,13 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	float3		v2;
 	float3		g;
 	int2		m;
-	float		r = length(cam);
-	float		d = r;
+	float		d = length(cam);
 	float		rel_mov = ((pow(data->old_g.x - data->g.x, 2)) +
 		(pow(data->old_g.y - data->g.y, 2)));
-	float3		lz = (float3)(18.0f, 28.0f, 2.6666f);
+	float3		lz = (float3)(18.0f, 10.0f, 2.666666f);
 	int			i = FLOW - 1;
 	int			color;
+	float		r;
 
 	c[0] = data->corners[0] * d + cam;
 	c[1] = data->corners[1] * d + cam;
@@ -84,16 +84,18 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 
 	g = c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y));
 	if (LORENZ)
-		g = p.lorenz;
+		g += p.lorenz;
 	//g += v1 * p.lorenz.x + v2 * p.lorenz.y;
-
+	
 	img[p.m[i].x + p.m[i].y * data->w] = 0;
-
-	p.a = 100.0f * (((g - p.p))) / (0.1f + dot((g - p.p), (g - p.p)));
+	r = dot(g - p.p, g - p.p);
+	k = 1.0f * clamp(1.0f - sqrt(r), 0.0f, 1.0f) * dot(p.v, p.v) * p.v;
+	p.a = 100.0f * (((g - p.p))) / (0.01f + r);
 	//regular
-	//p.v += p.a;
-	//lorenz system
-	p.v = p.a;
+	if (LORENZ)
+		p.v += p.a;
+	else
+		p.v += p.a;
 	p.p += p.v;
 	k = normalize(p.p - cam);
 	k = p.p - dot(cam + data->dir * d, data->dir) * data->dir;

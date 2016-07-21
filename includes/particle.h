@@ -6,7 +6,7 @@
 /*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/06/27 10:53:29 by cchaumar          #+#    #+#             */
-/*   Updated: 2016/07/10 13:56:11 by cchaumar         ###   ########.fr       */
+/*   Updated: 2016/07/21 13:31:25 by cchaumar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@
 # define RAD		M_PI / 180.0
 # define UGLY		void CL_CALLBACK
 # define KERNEL		"kernels/particle.cl"
-# define GLOBAL		640
+# define GLOBAL		1280
 # define NUM_P		GLOBAL * GLOBAL
 # define NUM_KEYS	10
 # define SPEED		20

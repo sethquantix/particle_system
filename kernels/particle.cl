@@ -13,7 +13,7 @@ __kernel void init(__global t_particle *particles, uint2 seed)
 	float t = ((float)x / (float)l) * 2.0f * M_PI;
 	float d = ((float)y / (float)h) * 2.0f * M_PI;
 	p.p = (float3)(cos(d) * cos(t), cos(d) * sin(t), sin(d));
-	p.v = 0.1f * (float3)(p.p.y, -p.p.x, p.p.z);
+	p.v = 0.1f * (float3)(p.p.x, -p.p.z, p.p.y);
 	p.a = (float3)(0.0f);
 	p.lorenz = p.p;
 	while (++i < FLOW)
@@ -66,9 +66,7 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	float3		g;
 	int2		m;
 	float		d = length(cam);
-	float		rel_mov = ((pow(data->old_g.x - data->g.x, 2)) +
-		(pow(data->old_g.y - data->g.y, 2)));
-	float3		lz = (float3)(18.0f, 10.0f, 2.666666f);
+	float3		lz = (float3)(1.0f, 16.0f, 2.3f);
 	int			i = FLOW - 1;
 	int			color;
 	float		r;
@@ -82,20 +80,20 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	p.lorenz.y = p.p.x * (lz.y - p.p.z) - p.p.y;
 	p.lorenz.z = p.p.x * p.p.y - lz.z * p.p.z;
 
-	g = c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y));
-	if (LORENZ)
-		g += p.lorenz;
-	//g += v1 * p.lorenz.x + v2 * p.lorenz.y;
-	
+	g = !LORENZ * (c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y))) +
+		LORENZ * p.lorenz;
+
 	img[p.m[i].x + p.m[i].y * data->w] = 0;
 	r = dot(g - p.p, g - p.p);
 	k = 1.0f * clamp(1.0f - sqrt(r), 0.0f, 1.0f) * dot(p.v, p.v) * p.v;
-	p.a = 100.0f * (((g - p.p))) / (0.01f + r);
-	//regular
 	if (LORENZ)
-		p.v += p.a;
+		p.a = 100.0f * (g - p.p) / (0.01f + r);
 	else
-		p.v += p.a;
+		p.a = 0.01f * (g - p.p) / (0.01f + r);
+	if (LORENZ)
+		p.v = p.a;
+	else
+		p.v += cbrt(p.a);
 	p.p += p.v;
 	k = normalize(p.p - cam);
 	k = p.p - dot(cam + data->dir * d, data->dir) * data->dir;
@@ -103,9 +101,10 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 		(int)(data->h * (1.0f - dot(k - c[0], normalize(v2)) / length(v2))));
 	g = c[0] + (v1 * (data->g.x)) + (v2 * (data->g.y));
 	r = length(p.p - g);
-	col = (float3)(clamp(1.0f - r / d, 0.3f, 1.0f));
-	col.x = (1.0f - col.x) * 360.0f;
-
+	if (x == 0 && y == 0)
+		printf("%f\n", (9.0f + log(dot(p.v, p.v))) / 11.0f);
+	col = (float3)(clamp((9.0f + log(dot(p.v, p.v))) / 11.0f, 0.2f, 1.0f));
+	col.x = ((1.0f - col.x) / 0.8f) * 360.0f;
 //	col = (float3)(1.0f, 1.0f, 1.0f);
 	if (m.x >= 0 && m.x < data->w && m.y >= 0 && m.y < data->h &&
 		dot(data->dir, p.p - cam) > 0)
@@ -121,8 +120,6 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	}
 	p.m[0] = m;
 	particles[x + y * l] = p;
-	if (x == 0 && y == 0 && 1 == 1)
-	{printf("rel_mov == %f, old_g.x == %f, old_g.u == %f, g.x == %f, g.y == %f\n", rel_mov, data->old_g.x, data->old_g.y, data->g.x, data->g.y);
 //		printf("dir : %5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f | %5.2f %5.2f\n",
 //			data->dir.x, data->dir.y, data->dir.z, g.x, g.y, g.z,
 //			dot(k - c[0], normalize(v1)) / length(v1),
@@ -137,5 +134,4 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 //			v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
 //		printf("%5.2f %5.2f %5.2f | %d %d | %5.2f %5.2f %5.2f\n",
 //			k.x, k.y, k.z, p.m.x, p.m.y);
-	}
 }

@@ -1,7 +1,7 @@
 #define FLOW	1
 #define SCALE	5000.0f
 #define RAD		180.0f / 3.14f
-#define LORENZ	1
+#define LORENZ	0
 
 typedef struct		s_particle
 {

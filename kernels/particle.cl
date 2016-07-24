@@ -93,7 +93,7 @@ __kernel void particle(__global t_particle *particles, __constant t_data *data,
 	if (LORENZ)
 		p.v = p.a;
 	else
-		p.v += cbrt(p.a);
+		p.v += p.a;
 	p.p += p.v;
 	k = normalize(p.p - cam);
 	k = p.p - dot(cam + data->dir * d, data->dir) * data->dir;

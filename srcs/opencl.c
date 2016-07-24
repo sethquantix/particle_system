@@ -6,7 +6,7 @@
 /*   By: cchaumar <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2016/05/04 14:23:08 by cchaumar          #+#    #+#             */
-/*   Updated: 2016/06/30 14:04:41 by cchaumar         ###   ########.fr       */
+/*   Updated: 2016/07/21 13:37:58 by cchaumar         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,14 +70,15 @@ static void			opencl_memory(t_env *e)
 
 	n = 0;
 	if ((e->queue = clCreateCommandQueue(e->context, e->device,
-		CL_QUEUE_PROFILING_ENABLE, NULL)) == NULL)
+		0, NULL)) == NULL)
 		die("Couldnt create command queue.", e, EXIT_FAILURE);
 	ft_printf("{CGRNCommand queue created.\n}");
 	if ((e->program = clCreateProgramWithSource(e->context, 1,
 		(const char **)(&e->source), NULL, NULL)) == NULL)
 		die("couldnt create program.", e, EXIT_FAILURE);
 	ft_printf("{CGRNPRogram created from sources.\n}");
-	if (clBuildProgram(e->program, 0, NULL, "-I kernels", NULL, NULL))
+	if (clBuildProgram(e->program, 0, NULL,
+		"-I kernels -cl-fast-relaxed-math", NULL, NULL))
 		die("Couldnt build program.", e, EXIT_FAILURE);
 	ft_printf("{CGRNProgram successfully built\n}");
 	e->particles = clCreateBuffer(e->context, CL_MEM_READ_WRITE,

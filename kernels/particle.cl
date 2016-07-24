@@ -12,9 +12,12 @@ __kernel void init(uint2 seed, __global float3 *pos_par, __global float3 *acc_pa
 	float t = ((float)x / (float)l) * 2.0f * M_PI;
 	float d = ((float)y / (float)h) * 2.0f * M_PI;
 //	pos_par[ind] = (float3)(10.0f*cos(d)*cos(t), 10.0f*cos(d)*sin(t), 10.0f*cos(d*t)*sin(t*d)); // crab
-	pos_par[ind] = (float3)(-5.0f + 10.0f * (float)x/(float)h*2.0f, -5.0f + 10.0f * (float)y/(float)l*2.0f, -5.0f + 10.0f * ((float)(cos((float)x*x*x)*cos((float)y*y*y)))); // cube
+//	pos_par[ind] = (float3)(10.0f*cos(d*t)*cos(t*d), 10.0f*cos(d*t)*sin(t*d), 10.0f*cos(d*t)*sin(t*d)); // torus
+//	pos_par[ind] = (float3)(10.0f*cos(d*t)-cos(t*d), 10.0f*cos(d*t)*sin(t*d), 10.0f*cos(d*t)*sin(t*d)); // infinity
+//	pos_par[ind] = (float3)(-5.0f + 10.0f * (float)x/(float)h*2.0f, -5.0f + 10.0f * (float)y/(float)l*2.0f, -5.0f + 10.0f * ((float)(cos((float)x*x*x)*cos((float)y*y*y)))); // cube
 //	pos_par[ind] = (float3)( 10.0f*sin(t)*cos(d), 10.0f*sin(t)*sin(d), 10.0f*cos(t)); // sphere
 //	pos_par[ind] = (float3)((float)x/(float)h*2.0f, (float)y/(float)l*2.0f,  (cbrt((float)((x*x*x)*(y*y*y))))/(float)(h)); // sandwich
+	pos_par[ind] = (float3)((float)(x)/h, (float)(x^y)/(float)l, (float)(x+y)/(l+h));
 
 //	spd_par[ind] = 0.1f * (float3)(10.0f*cos(d) * cos(t), -10.0f*cos(d) * sin(t), 10.0f*sin(t));
 	spd_par[ind] = (float3)(0.0f);
@@ -24,8 +27,9 @@ __kernel void init(uint2 seed, __global float3 *pos_par, __global float3 *acc_pa
 	a = a ^ (a << 11);
 	a = seed.y ^ (seed.y >> 19) ^ (a ^ (a >> 8));
 	lc_par[ind] = (1.0f + (float)a / (float)(2 ^ 32 - 1)) / 2.0f;
-	col[ind] = (float3)(clamp(1.0f - (float)(ind)/(GLOBAL + GLOBAL * l), 0.0f, 1.0f));
-	col[ind].x = (1.0f - col[ind].x) * 360.0f;
+	col[ind] = (float3)(clamp((float)(ind)/(GLOBAL + GLOBAL * l), 0.0f, 1.0f));
+	//col[ind] = (float3)(1.0f);
+	col[ind].x = (1.0f - col[ind].y) * 360.0f;
 }
 
 int		hsv(float3 c)
@@ -49,7 +53,7 @@ int		hsv(float3 c)
 #define RAD 180.0f / 3.14f
 
 __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __global float3 *spd_par, __global float *lc_par, __global int2 *m_par, __global float3 *col, 
-	__constant t_data *data, __write_only image2d_t img, __constant long *timer)
+	__constant t_data *data, __global int *img, __constant long *timer)
 {
 	int			x = get_global_id(0);
 	int			y = get_global_id(1);
@@ -78,22 +82,33 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 	v1 = c[1] - c[0];
 	v2 = c[2] - c[0];
 
-//	img[m_m[0] + m_m[1] * data->w] = 0;
-	write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)0);
+	img[m_m[0] + m_m[1] * data->w] = 0;
+	// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)0);
 	float3	s = dot(vit, vit) * vit;
 
-	g = c[0] + (v1 * ((data->g.x)+cbrt(cos((float)timer[0]/10.0f)/5.0f)/10.0f)) + (v2 * ((data->g.y+cbrt(sin((float)timer[0]/10.0f)/5.0f)/10.0f)));
+	float tt = ((float)x / (float)l) * 2.0f * M_PI;
+	float dd = ((float)y / (float)h) * 2.0f * M_PI;
+	// float3	crab = (float3)((float)x/(float)h*2.0f, (float)y/(float)l*2.0f, ((float)(cos((float)x*x*x)*cos((float)y*y*y))));
+	// float3	crab = (float3)(10.0f*cos(dd*tt)*cos(tt*dd), 10.0f*cos(dd*tt)*sin(tt*dd), 10.0f*cos(dd*tt)*sin(tt*dd)); // crab;
+	// float3	crab = (float3)(10.0f*cos(dd*tt)*cos(tt*dd), 10.0f*cos(dd*tt)*sin(tt*dd), 10.0f*cos(dd*tt)*sin(tt*dd)); 
+	// float3	crab = (float3)(10.0f*sin(tt)*cos(dd), 10.0f*sin(tt)*sin(dd), 10.0f*cos(tt));
+	float3	crab = (float3)((float)(x)/h +(cos((float)timer[0]/10.0f)/2.0f), (float)(x^y)/(float)l+(sin((float)timer[0]/10.0f)/2.0f), (float)(x+y)/(l)+(tanh((float)timer[0]/10.0f)/2.0f));//(float3)((float)(x)/l, (float)(x^y)/(float)l, (x+y)/l);
+//	float3	crab = (float3)((float)(x % h), (float)(y ^ l), (float)((x + y)%(l + h)));
+	//	float3	crab = (float3)((float)(x)/h, (float)(x|y)/(float)l, (float)(x+y)/(l+h));
+	// float3	crab = (float3)(10.0f*cos(dd)*cos(tt), 10.0f*cos(dd)*sin(tt), 10.0f*cos(dd*tt)*sin(tt*d));
+	g = c[0] + ((v1 * (data->g.x)) + (v2 * (data->g.y))) + (-5.0f + 10.0f * exp(-sin(crab)));
+//	g = c[0] + (v1 * ((data->g.x)+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)) + (v2 * ((data->g.y+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)));
 //	g.y = -g.y;
 //	g.x = -g.x;
 	r = dot((float3)clamp(g - p, 0.0f, 1.0f), ((float3)clamp(g - p, 0.0f, 1.0f)));
 	k = 100.0f * (1.0f - (clamp(1.0f - sqrt(r), 0.0f, 1.0f)));//min(sqrt(r), 1.0f);
 	k = k * s;
-	k = (g - p) / (1.0f + dot(g-p,g-p)) - k/10000.0f;
+	k = (g - p) / (1.0f + dot(g-p,g-p)) - k/1000.0f;
 	acc = k;
 	vit += acc;
 
 //	if (rel_mov > 0.000009f)
-	//	p += cbrt(vit) + vit * cbrt(dot(normalize(vit),normalize(acc)));//cbrt(vit)+vit;// + cbrt(acc);//quality cubes m8
+		// p += cbrt(vit) + vit * cbrt(dot(acc,acc));//cbrt(vit)+vit;// + cbrt(acc);//quality cubes m8
 //	else
 //		p -= vit ;
 
@@ -109,7 +124,7 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 
 	if (m_m[0] >= 0 && m_m[0] < data->w && m_m[1] >= 0 && m_m[1] < data->h &&
 		dot(data->dir, p - cam) > 0)
-		write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)hsv(col_p));//img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
+		img[m_m[0] + m_m[1] * data->w] = hsv(col_p);// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)hsv(col_p));//img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
 	else
 		m_m = (int2)(0);
 

@@ -67,7 +67,7 @@ static void			init_kernels(t_env *e)
 	clSetKernelArg(init, 6, sizeof(cl_mem), &e->mass);
 
 	clSetKernelArg(init, 0, sizeof(cl_uint2), &seed);
-	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->img);
+	clSetKernelArg(e->particle, 7, sizeof(cl_mem), &e->buf);
 	clSetKernelArg(e->particle, 8, sizeof(cl_mem), &e->timer);
 	if (err)
 		die("Couldnt create buffer on VRAM. Cause reasons.", e, EXIT_FAILURE);
@@ -110,6 +110,9 @@ static void			opencl_memory(t_env *e)
 	e->mass = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(cl_float3) * NUM_P, NULL, &err);
 
+	e->buf = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(int) * WIDTH * HEIGHT, NULL, &err);
+
 	e->cl_data = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(t_data), NULL, &err);
 	e->timer = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
@@ -131,7 +134,8 @@ void				opencl_init(t_env *e)
 	if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &e->device, NULL))
 		die("GPU not detected by opencl. Now that's new", e, EXIT_FAILURE);
 	ft_printf("{CGRNGPU detected.\n");
-
+	if (!(e->context = clCreateContext(0, 1, &e->device, &notify, NULL, &err)))
+		die("Couldnt create opencl context.", e, EXIT_FAILURE);
 	info_device(e->device);
 	e->global[0] = GLOBAL;
 	e->global[1] = GLOBAL;

@@ -40,20 +40,6 @@ void	rotate(t_env *e)
 	transpose(e->data->mat);
 }
 
-/*
-int	mlx_opengl_swap_buffers(mlx_win_list_t *win_ptr)
-{
-  [(id)(win_ptr->winid) flushGLContext];
-  return (0);
-}
-
-int	mlx_opengl_window_set_context(mlx_win_list_t *win_ptr)
-{
-  [(id)(win_ptr->winid) selectGLContext];
-  return (0);
-}
-*/
-
 void	draw(t_env *e)
 {
 	int				i;
@@ -67,10 +53,10 @@ void	draw(t_env *e)
 	while (++i < NUM_KEYS)
 		if (e->keys[i].pressed)
 			e->keys[i].f(e->keys[i].keycode, e);
-	glBindFramebuffer(GL_FRAMEBUFFER, e->framebuffer);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, e->texture[0]);
-	glClear(GL_COLOR_BUFFER_BIT);
+//	glBindFramebuffer(GL_FRAMEBUFFER, e->framebuffer);
+//	glActiveTexture(GL_TEXTURE0);
+//	glBindTexture(GL_TEXTURE_2D, e->texture[0]);
+//	glClear(GL_COLOR_BUFFER_BIT);
 //	glFinish();
 	clEnqueueWriteBuffer(e->queue, e->cl_data, CL_TRUE, 0, sizeof(t_data),
 		e->data, 0, NULL, NULL);
@@ -78,31 +64,32 @@ void	draw(t_env *e)
 	clEnqueueWriteBuffer(e->queue, e->timer, CL_TRUE, 0, sizeof(cl_mem),
 		&(ouch), 0, NULL, NULL);
 	clSetKernelArg(e->particle, 8, sizeof(cl_mem), &e->timer);
-	clEnqueueAcquireGLObjects(e->queue, 1, &e->img, 0, 0, 0);
+//	clEnqueueAcquireGLObjects(e->queue, 1, &e->img, 0, 0, 0);
 	//printf("hellooooooo\n");
-	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->img);
+//	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->img);
+	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->buf);
 	clEnqueueNDRangeKernel(e->queue, e->particle, 2, NULL,
 		e->global, e->local, 0, NULL, NULL);
 	clFinish(e->queue);
 	//printf("axaxaxaxaxa\n");
-	clEnqueueReleaseGLObjects(e->queue, 1, &e->img, 0, 0, 0);
+//	clEnqueueReleaseGLObjects(e->queue, 1, &e->img, 0, 0, 0);
 	//printf("worddddddd\n");
 //	clEnqueueWriteBuffer(e->queue, e->img, CL_TRUE, 0, sizeof(cl_image), &e->img, 0, 0, 0);	
-	//clEnqueueReadBuffer(e->queue, e->buf, CL_TRUE, 0,
-	//	sizeof(int) * WIDTH * HEIGHT, e->buf_affich, 0, NULL, NULL);
+	clEnqueueReadBuffer(e->queue, e->buf, CL_TRUE, 0,
+		sizeof(int) * WIDTH * HEIGHT, e->buf_affich, 0, NULL, NULL);
 	
 	// clEnqueueReadBuffer(e->queue, &e->img_affich, CL_TRUE, 0, sizeof(cl_mem), &e->img, 0, 0, 0);
 	//printf("testererere\n");
 	clFinish(e->queue);
-//	mlx_put_image_to_window(e->mlx, e->win, e->img_affich, 0, 0);
+	mlx_put_image_to_window(e->mlx, e->win, e->img_affich, 0, 0);
 
 	//glEnable(GL_TEXTURE_2D);
 	//glActiveTexture(GL_TEXTURE0);
 	// glFinish();
 	// glDrawElements(GL_TEXTURE_2D, 1, GL_UNSIGNED_INT, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, e->texture[0]);
-	glDrawBuffer(GL_FRONT_AND_BACK);
-	mlx_opengl_swap_buffers(e->win);
+//	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//	glActiveTexture(GL_TEXTURE0);
+//	glBindTexture(GL_TEXTURE_2D, e->texture[0]);
+//	glDrawBuffer(GL_FRONT_AND_BACK);
+//	mlx_opengl_swap_buffers(e->win);
 }

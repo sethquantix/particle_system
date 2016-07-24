@@ -141,11 +141,11 @@ int		main(void)
 {
 	t_env		e;
 
-	//if ((e.mlx = mlx_init()) == NULL)
-	//	die("couldn't start mlx", &e, EXIT_FAILURE);
-	//if ((e.win = mlx_new_window(e.mlx, WIDTH, HEIGHT, "particle")) == NULL)
-	//	die("Window broke.", &e, EXIT_FAILURE);
-	interop(&e);
+	if ((e.mlx = mlx_init()) == NULL)
+		die("couldn't start mlx", &e, EXIT_FAILURE);
+	if ((e.win = mlx_new_window(e.mlx, WIDTH, HEIGHT, "particle")) == NULL)
+		die("Window broke.", &e, EXIT_FAILURE);
+	//interop(&e);
 	//if ((e.img = mlx_new_image(e.mlx, WIDTH, HEIGHT)) == NULL)
 	//	die("Not enough memory", &e, EXIT_FAILURE);
 	e.img_affich = mlx_new_image(e.mlx, WIDTH, HEIGHT);

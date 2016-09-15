@@ -27,7 +27,7 @@ __kernel void init(uint2 seed, __global float3 *pos_par, __global float3 *acc_pa
 	a = a ^ (a << 11);
 	a = seed.y ^ (seed.y >> 19) ^ (a ^ (a >> 8));
 	lc_par[ind] = (1.0f + (float)a / (float)(2 ^ 32 - 1)) / 2.0f;
-	col[ind] = (float3)(clamp((float)(ind)/(GLOBAL + GLOBAL * l), 0.0f, 1.0f));
+	col[ind] = (float3)(clamp((float)(ind)/(GLOBAL + GLOBAL * l), 0.3f, 1.0f));
 	//col[ind] = (float3)(1.0f);
 	col[ind].x = (1.0f - col[ind].y) * 360.0f;
 }
@@ -86,8 +86,8 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 	// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)0);
 	float3	s = dot(vit, vit) * vit;
 
-	float tt = M_PI + ((float)x / (float)l) * 2.0f * M_PI ;//+ M_PI * cos((float)timer[0]/100.0f)/2.0f;
-	float dd = M_PI + ((float)y / (float)h) * 2.0f * M_PI ;//+ M_PI * sin((float)timer[0]/100.0f)/2.0f;
+	float tt = M_PI + ((float)(x) / (float)l)* (sin((float)timer[0]/180.0f)) * 4.0f * M_PI;//+ M_PI * cos((float)timer[0]/100.0f)/2.0f;
+	float dd = M_PI + ((float)(y) / (float)h)* (cos((float)timer[0]/180.0f)) * 4.0f * M_PI;//+ M_PI * sin((float)timer[0]/100.0f)/2.0f;
 	// float3	crab = (float3)((float)x/(float)h*2.0f, (float)y/(float)l*2.0f, ((float)(cos((float)x*x*x)*cos((float)y*y*y))));
 	// float3	crab = (float3)(cos(dd*tt)*cos(tt*dd), cos(dd*tt)*sin(tt*dd), cos(dd*tt)*sin(tt*dd)); // crab;
 	// float3	crab = (float3)(cos(dd*tt)*cos(tt*dd), cos(dd*tt)*sin(tt*dd), cos(dd*tt)*sin(tt*dd)); 
@@ -95,15 +95,24 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 //	float3	crab = (float3)((float)(x)/h +(cos((float)timer[0]/10.0f)/2.0f), (float)(x^y)/(float)l+(sin((float)timer[0]/10.0f)/2.0f), (float)(x+y)/(l)+(tanh((float)timer[0]/10.0f)/2.0f));//(float3)((float)(x)/l, (float)(x^y)/(float)l, (x+y)/l);
 	// float3	crab = (float3)((float)(x % h), (float)(y ^ l), (float)((x + y)%(l + h)));
 	//	float3	crab = (float3)((float)(x)/h, (float)(x|y)/(float)l, (float)(x+y)/(l+h));
-	float3	crab = (float3)(cos(dd)*cos(tt), cos(dd)*sin(tt), cos(tt*dd)*sin(dd));
-	g = c[0] + ((v1 * (data->g.x)) + (v2 * (data->g.y))) + (-5.0f + 10.0f * crab);//(-5.0f + 10.0f * exp(-sin(crab)));
+	// float3	crab = (float3)(cos(dd)*cos(tt), cos(dd)*sin(tt), cos(dd*tt)*sin(dd));
+	//	float3	crab = (float3)(cos(dd*tt)*cos(tt*tt), cos(dd*dd)*sin(tt*tt), sin(dd*dd)*sin(tt*tt));
+	//float3	crab = (float3)(cos(dd)*cos(tt), cos(dd)*sin(tt), sin(tt)); // PART CALABY
+	//float3	crab = (float3)(sin(dd)*cos(tt), cos(dd)*sin(tt), sin(tt)*(sin(dd)+cos(tt))); ANOTHER
+	//float3	crab = (float3)(sin(dd)*cos(tt), cos(dd)*sin(tt), sin(tt)*sin(dd)); //ANOTHER
+	// float3	crab = (float3)(sin(dd)*cos(tt), cos(dd)*sin(tt), sin(tt));
+	// float3	crab = (float3)(sin(dd)*sin(tt), sin(dd)*cos(tt), sin(tt)*cos(dd*tt));//circlecomplete
+	// float3	crab = (float3)(sin(dd)*sin(tt), sin(dd)*cos(tt), sin(tt));//beautiful
+	float3	crab = (float3)(sin(dd)*sin(tt), sin(dd)*cos(tt), sin(tt));
+
+	g = c[0] + ((v1 * (data->g.x)) + (v2 * (data->g.y))) + (-5.0f + 10.0f * (crab));//(-5.0f + 10.0f * exp(-sin(crab)));
 //	g = c[0] + (v1 * ((data->g.x)+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)) + (v2 * ((data->g.y+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)));
 //	g.y = -g.y;
 //	g.x = -g.x;
-	r = dot(normalize(g - p), normalize(g - p)); //dot((float3)clamp(g - p, 0.0f, 1.0f), ((float3)clamp(g - p, 0.0f, 1.0f)));
-	k = 100.0f * (1.0f - (clamp(1.0f - sqrt(r), 0.0f, 1.0f)));//min(sqrt(r), 1.0f);
+	r = dot((g - p), (g - p)); //dot((float3)clamp(g - p, 0.0f, 1.0f), ((float3)clamp(g - p, 0.0f, 1.0f)));
+	k = 100.0f * (1.0f + (clamp((r), 0.0f, 1.0f)));//min(sqrt(r), 1.0f);
 	k = k * s;
-	k = (g - p) / (0.0f + dot((g-p),normalize(g-p))) - k/1000.0f;
+	k = (g - p) / (1.0f + dot((g-p),normalize(g-p))) - k/200.0f;
 	acc = k;
 	vit += acc;
 

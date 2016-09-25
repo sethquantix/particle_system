@@ -91,8 +91,8 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 	// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)0);
 	float3	s = dot(vit, vit) * vit;
 
-	float tt = /*M_PI +*/ ((float)(x) / (float)(l)) /*+ (sin((float)timer[0]/180.0f))*/ * 2.0f * M_PI;//+ M_PI * cos((float)timer[0]/100.0f)/2.0f;
-	float dd = /*M_PI +*/ ((float)(y) / (float)(h)) /*+ (cos((float)timer[0]/180.0f))*/ * 2.0f * M_PI;//+ M_PI * sin((float)timer[0]/100.0f)/2.0f;
+	float tt = /*M_PI +*/ (1.0f-(float)(x) / (float)(l)) /*+ (sin((float)timer[0]/180.0f))*/ * 2.0f * 3.14f;//+ M_PI * cos((float)timer[0]/100.0f)/2.0f;
+	float dd = /*M_PI +*/ (2.0f-(float)(y) / (float)(h)) /*+ (cos((float)timer[0]/180.0f))*/ * 2.0f * 3.14f;//+ M_PI * sin((float)timer[0]/100.0f)/2.0f;
 
 	// int j = 0;
 	// float3	acc_tmp = (float3)0.0f;
@@ -161,24 +161,84 @@ __kernel void particle(__global float3 *pos_par, __global float3 *acc_par, __glo
 	// //
 	// //float3	crab = (float3)( r_x, r_y, r_z);
 
-float	r_r = 1.0f * (1.0f - cos(dd) / 2.0f);
+// col_p = (float3)( (float)(sin(((3.14f*(x)/(GLOBAL))+sin(timer[0]*3.14f/180.0f))*3.14f)*sin(((3.14f*(y)/(GLOBAL))+sin(timer[0]*3.14f/180.0f))*3.14f) ) );
+// if (col_p.x < 0.0f)
+	// col_p = -col_p;
+// col_p.x = (1.0f - col_p.y) * 360.0f;
+
+if ((tt) < ((6.28f) / 6.0f))
+{
+	col_p.x = 1.0f;
+	col_p.y = 6.0f * ((tt) - 0.0f) / 6.28f;
+	col_p.z = 0.0f;
+}
+else if ((tt) < (2.0f * 6.28f / 6.0f))
+{
+	col_p.x = 1.0f + 6.0f * (6.28f / 6.0f - (tt)) / 6.28f;
+	col_p.y = 1.0f;
+	col_p.z = 0.0f;
+}
+else if ((tt) < (3.0f * 6.28f / 6.0f))
+{
+	col_p.x = 0.0f;
+	col_p.y = 1.0f;
+	col_p.z = 6.0f * ((tt) - 4.0f * 6.28f / 6.0f) / 6.28f;
+}
+else if ((tt) < (4.0f * 6.28f / 6.0f))
+{
+	col_p.x = 0.0f;
+	col_p.y = 1.0f + 6.0f * (3.0f * 6.28f / 6.0f - (tt)) / 6.28f;
+	col_p.z = 0.0f;
+}
+else if ((tt) < (5.0f * 6.28f / 6.0f))
+{
+	col_p.x = 6.0f * ((tt) - 4.0f * 6.28f / 6.0f) / 6.28f;
+	col_p.y = 0.0f;
+	col_p.z = 1.0f;
+}
+else
+{
+	col_p.x = 1.0f;
+	col_p.y = 0.0f;
+	col_p.z = 1.0f + 6.0f * (5.0f * 6.28f / 6.0f - (tt)) / 6.28f;
+}
+col_p *= 255.0f;
+
+// col_p = colorizator
+
+float	r_r = 8.0f * (1.0f - cos(dd) / 2.0f);
 float	r_x = 0.0f;
 float	r_y = 0.0f;
 float	r_z = 0.0f;
 
-if (dd >= 0.0f && dd < 3.14f)
+if ( (dd-6.28f) >= 0.0f &&  (dd-6.28f) < 3.14f)
 {
-	r_x = 3.0f * cos(dd) * ( (1.0f + sin(dd)) + r_r * cos(dd) * cos(tt) );
-	r_y = 11.0f * sin(dd) + r_r * sin(dd) * cos(tt);
+	r_x = 6.0f * cos(dd) *  (1.0f + sin(dd)) + r_r * cos(dd) * cos(tt) ;
+	r_y = 16.0f * sin(dd) + r_r * sin(dd) * cos(tt);
 }
-else if (dd >= 3.14f && dd <= 6.30f)
+else if ( (dd-6.28f) >= 3.14f &&  (dd-6.28f) <= 6.28f)
 {
-	r_x = 3.0f * cos(dd) * ( (1.0f + sin(dd)) + r_r * cos(tt + 3.14f));
-	r_y = 11.0f * r_r*sin(dd);
+	r_x = 6.0f * cos(dd) *  (1.0f + sin(dd)) + r_r * cos(tt);
+	r_y = 16.0f * sin(dd);
 }
 r_z = r_r * sin(tt);
 
+//float	r_x = 0.0f;
+//float	r_y = 0.0f;
+//float	r_z = 0.0f;
+//
+//r_x = (1.5f + cos(2.0f * dd/2.0f) *sin(tt) - sin(2.0f * dd / 2.0f) * sin(2.0f * tt) ) * cos(dd /2.0f);
+//r_y = (1.5f + cos(2.0f * dd/2.0f) *sin(tt) - sin(2.0f * dd / 2.0f) * sin(2.0f * tt) ) * sin(dd /2.0f);
+//r_z = sin(2.0f * dd / 2.0f) * sin(tt) + cos(2.0f * dd / 2.0f) * sin(2.0f * tt);
 
+
+// float	r_x = 0.0f;
+// float	r_y = 0.0f;
+// float	r_z = 0.0f;
+// r_x = 5.0f * (1.0f - dd / (2.0f*3.14f)) * cos(1.50f * dd) * (1.0f + cos(tt)) + 2.0f * cos(1.50f * dd);
+// r_y = 5.0f * (1.0f - dd / (2.0f*3.14f)) * cos(1.50f * dd) * (1.0f + cos(tt)) + 2.0f * sin(1.50f * dd);
+// r_z = 10.0f * dd/6.28f + 5.0f * (1.0f - dd / 6.28f) * sin(tt);
+// 
 	float3	crab = (float3)(r_x, r_y, r_z);
 
 	// float3		lz = (float3)(18.0f, 28.0f, 2.6666f);
@@ -189,14 +249,17 @@ r_z = r_r * sin(tt);
 	// crab.x += 0.1f*sin(0.5f*3.14f*lorenz.x);
 	// crab.y += 0.1f*sin(0.5f*3.14f*lorenz.y);
 	// crab.z += 0.1f*sin(0.5f*3.14f*lorenz.z);
-	g = c[0] + ((v1 * (data->g.x)) + (v2 * (data->g.y))) + (-5.0f + 1.0f * pow(crab, 1.0f));//(-5.0f + 10.0f * exp(-sin(crab)));
-	// g = c[0] + (v1 * ((data->g.x)+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)) + (v2 * ((data->g.y+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)));
+	g = c[0] + ((v1 * (data->g.x)) + (v2 * (data->g.y))) + (-0.0f + 1.0f * pow((crab), 1.0f)/10.0f);//(-5.0f + 10.0f * exp(-sin(crab)));
+	// g = c[0] + (v1 * ((data->g.x)+cbrt(tan((float)timer[0]/10.0f)/5.0f)/10.0f)) + (v2 * ((data->g.y+cbrt(tan((float)timer[0]/10.0f)/5.0f)/1.0f)));
 //	g.y = -g.y;
 //	g.x = -g.x;
-	r = dot((g - p), (g - p)); //dot((float3)clamp(g - p, 0.0f, 1.0f), ((float3)clamp(g - p, 0.0f, 1.0f)));
-	k = 100.0f * (1.0f + (clamp((r), 0.1f, 1.0f)));//min(sqrt(r), 1.0f);
-	k = k * s;
-	k = (g - p) / (1.0f + dot((g-p),normalize(g-p))) - k/2000.0f;
+	r = dot(normalize(g - p), (g - p)); //dot((float3)clamp(g - p, 0.0f, 1.0f), ((float3)clamp(g - p, 0.0f, 1.0f)));
+	k = 100.0f * (1.0f - (clamp((r), 0.1f, 0.90f)));//min(sqrt(r), 1.0f);
+	k = k * (s);
+	// k = ((g - p)) / (0.0f + dot(normalize(g-p),(g-p))) - k/700.0f;
+	// k = ((g - p)) / (dot(s-cbrt(crab),s-cbrt(crab))+0.0f + dot(normalize(g-p),(g-p))) - k/700.0f;
+	k = (-crab+(g - p)) / (0.0f + dot(normalize(g-p),(g-p))) - k/200.0f;
+	// k = cbrt(-cbrt(g-p)+(g - p)) / (0.0f + dot(normalize(g-p),(g-p))) - k/200.0f;
 	acc = k;
 	// acc = acc_tmp;
 	vit += acc;
@@ -218,7 +281,7 @@ r_z = r_r * sin(tt);
 
 	if (m_m[0] >= 0 && m_m[0] < data->w && m_m[1] >= 0 && m_m[1] < data->h &&
 		dot(data->dir, p - cam) > 0)
-		img[m_m[0] + m_m[1] * data->w] = hsv(col_p);// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)hsv(col_p));//img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
+		img[m_m[0] + m_m[1] * data->w] = ((int)col_p.x << 16) + ((int)col_p.y << 8) +col_p.z;//hsv(col_p);// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)hsv(col_p));//img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
 	else
 		m_m = (int2)(0);
 

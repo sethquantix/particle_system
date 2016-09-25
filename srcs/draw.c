@@ -27,11 +27,11 @@ void	rotate(t_env *e)
 	cl_float3			mat[3];
 
 	ident(e->data->mat);
-	rot_mat(mat, 0, e->rot.x);
+	rot_mat(e->rot.x, mat, 0);
 	mat_mult(e->data->mat, mat);
-	rot_mat(mat, 1, e->rot.y);
+	rot_mat(e->rot.y, mat, 1);
 	mat_mult(e->data->mat, mat);
-	rot_mat(mat, 2, e->rot.z);
+	rot_mat(e->rot.z, mat, 2);
 	mat_mult(e->data->mat, mat);
 	e->data->dir = v_mult_mat(e->data->mat, float3(0, 0, 1));
 	e->data->corners[0] = v_mult_mat(e->data->mat, e->corners[0]);

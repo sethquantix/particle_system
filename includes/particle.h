@@ -34,10 +34,10 @@
 # define HEIGHT		1440
 # define RAD		M_PI / 180.0
 # define UGLY		void CL_CALLBACK
-# define KERNEL		"kernels/particle.cl"
-# define GLOBAL		2048
+# define KERNEL		"kernels/cluster_fuck.cl"
+# define GLOBAL		1024
 # define NUM_P		GLOBAL * GLOBAL
-# define NUM_KEYS	10
+# define NUM_KEYS	11
 # define SPEED		1
 # define RAD_SPEED	1
 
@@ -97,12 +97,18 @@ typedef struct					s_env
 	cl_mem				buf;
 	cl_mem				cl_data;
 	cl_mem				timer;
+	cl_mem				switcher;
+	cl_mem 				i;
+	cl_mem 				z;
 	int					*buff;
+	int 				*zero;
 	void				*img_affich;
 	int					*buf_affich;
 	//int					buff_tt[NUM_P];
 	cl_kernel			particle;
+	cl_kernel 			zeroes;
 	cl_float3			rot;
+	int					t;
 	char				*source;
 	size_t				global[2];
 	size_t				local[2];
@@ -136,5 +142,5 @@ t_key					new_key(int keycode, void (*f)(int, void *));
 int						mouse_free_hook(int x, int y, t_env *e);
 void					move_cam(int keycode, void *e);
 void					rotate_cam(int keycode, void *e);
-
+void					toggle(int keycode, void *env);
 #endif

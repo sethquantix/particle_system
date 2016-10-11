@@ -1,21 +1,21 @@
 typedef struct		s_particle
 {
 	int2		m;
-	float3		p;
-	float3		v;
-	float3		a;
-	float3		lorenz;
+	float4		p;
+	float4		v;
+	float4		a;
+	float4		lorenz;
 	float		lc;
 }					t_particle;
 
 typedef struct		s_data
 {
 	float4		cam;
-	float3		dir;
-	float3		corners[3];
-	float3		g;
-	float3		old_g;
-	float3		mat[3];
+	float4		dir;
+	float4		corners[3];
+	float4		g;
+	float4		old_g;
+	float4		mat[3];
 	int			w;
 	int			h;
 }					t_data;

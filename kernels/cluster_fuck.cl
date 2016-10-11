@@ -2,6 +2,27 @@
 
 // #pragma OPENCL EXTENSION cl_khr_fp64 : disable
 
+/* Dist Estimator
+	float2	dist_est = (float2)0.0f;
+	mad_el= (float4)(offs.x, offs.y, 0.0f,0.0f);
+	mad_el.z = 1.0f;itera=-1.0f;
+	while (++itera < MAX_ITER)
+	{
+		dist_est.x = 2.0f * (mad_el.x*mad_el.z - mad_el.y*mad_el.w);
+		dist_est.y = 2.0f * (mad_el.y*mad_el.z - mad_el.x*mad_el.w);
+		mad_el.z = dist_est.x;
+		dist_est.x = mad_el.x * mad_el.x - mad_el.y * mad_el.y + cos(3.14f+3.14f*timer[0]/180.0f)/2.0f;
+		mad_el.y = 2.0f * mad_el.x * mad_el.y + sin(3.14f+3.14f*timer[0]/180.0f)/2.0f;
+		mad_el.x = dist_est.x;
+		dist_est.x = mad_el.x * mad_el.x + mad_el.y * mad_el.y;
+		dist_est.y = mad_el.z * mad_el.z + mad_el.w * mad_el.w;
+		if (dist_est.x > exp(60.0f) || dist_est.y > exp(60.0f))
+			break;
+	}
+	float	a_a = sqrt(dist_est.y);
+	a_a = 2.0f * a_a * log(a_a) / sqrt(dist_est.y);
+*/
+
 __kernel void init(uint2 seed, __global float4 *pos_par, __global float4 *acc_par, __global float4 *spd_par, __global float *lc_par, __global int2 *m_par, __global float4 *col)
 {
 	int			x = get_global_id(0);
@@ -129,7 +150,7 @@ __kernel void particle(__global float4 *pos_par, __global float4 *acc_par, __glo
 	float4		vit = spd_par[ind];
 	int2		m_m = m_par[ind];
 	float4		col_p = col[ind];
-	float4		mad_el = col[ind];
+	float4		mad_el = (float4)0.0f;
 	// col_p = (float4)( (float)(sin(((3.14f*(x)/(GLOBAL))+sin(timer[0]*3.14f/180.0f))*3.14f)*sin(((3.14f*(y)/(GLOBAL))+sin(timer[0]*3.14f/180.0f))*3.14f) ) );
 	// if (col_p.x < 0.0f)
 		// col_p = -col_p;
@@ -140,14 +161,15 @@ __kernel void particle(__global float4 *pos_par, __global float4 *acc_par, __glo
 	v1 = c[1] - c[0];
 	v2 = c[2] - c[0];
 
-	img[m_m[0] + m_m[1] * data->w] = 0;
+	// if (mad_el.x != ((float)x - (float)l / 2.0f) / (0.25f * l))
+		img[m_m[0] + m_m[1] * data->w] = 0;
 	// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)0);
 	float4	s = dot(vit, vit) * vit-vit;
 
 	if (t & 0x1)
 	{
-	float tt = /*M_PI +*/ /*(cos(3.14f*timer[0]/180.0f))**/(((float)(x) / (float)(l))) /*+ (sin((float)timer[0]/180.0f))*/ * 2.0f * 3.14f;//+ M_PI * cos((float)timer[0]/100.0f)/2.0f;
-	float dd = /*M_PI +*/ /*(cos(3.14f*timer[0]/180.0f))**/(((float)(y) / (float)(h))) /*+ (cos((float)timer[0]/180.0f))*/ * 2.0f * 3.14f;//+ M_PI * sin((float)timer[0]/100.0f)/2.0f;
+	float tt = /*M_PI +*/ /*(cos(3.14f*timer[0]/180.0f))**/(1.0f-((float)(x) / (float)(l))) /*+ (sin((float)timer[0]/180.0f))*/ * 2.0f * 3.14f;//+ M_PI * cos((float)timer[0]/100.0f)/2.0f;
+	float dd = /*M_PI +*/ /*(cos(3.14f*timer[0]/180.0f))**/(1.0f-((float)(y) / (float)(h))) /*+ (cos((float)timer[0]/180.0f))*/ * 2.0f * 3.14f;//+ M_PI * sin((float)timer[0]/100.0f)/2.0f;
 
 	// int j = 0;
 	// float4	acc_tmp = (float4)0.0f;
@@ -315,10 +337,97 @@ float4	crab;
 // printf("%f, %f, %f\n", acos((1.0f-dot(normalize(g-p), g-p)/6.28f)), sin(timer[0]/45.0f), (g-p).x + (g-p).y + (g-p).z);
 
 crab = (float4)(0.0f);
-float4	crab_a = (float4)(r_x, r_y, r_z, 0.0f);
-float4	crab_b = (float4)( (4.0f + 2.0f * cos(tt)) * cos(dd+3.14f), (4.0f + 2.0f * cos((tt))) * sin(dd+3.14f), 2.0f * sin(tt) ,0.0f);
+// float4	crab_a = (float4)(r_x, r_y, r_z,0.0f);
+// float4	crab_b = (float4)( (4.0f + 2.0f * cos(tt)) * cos(dd+3.14f), (4.0f + 2.0f * cos((tt))) * sin(dd+3.14f), 2.0f * sin(tt) ,0.0f);
+// 
+// crab = mix_vect(crab_a, crab_b, sin(3.14f*timer[0]/180.0f));
 
-crab = mix_vect(crab_a, crab_b, sin(3.14f*timer[0]/180.0f));
+
+float2	offs = (float2)( ((float)x - (float)l / 2.0f) / (0.25f * l), ((float)y - (float)h / 2.0f) / (0.25f * h));
+// offs = (float2)(mad_el.x, mad_el.y);
+//( (4.0f + 2.0f * cos(tt)) * cos(dd+3.14f), (4.0f + 2.0f * cos((tt))) * sin(dd+3.14f), 2.0f * sin(tt) ,0.0f);
+mad_el.x = offs.x;//( cos(tt)) * cos(dd);//offs.x;
+mad_el.y = offs.y;//( cos((tt))) * sin(dd);//offs.y;
+#define MAX_ITER 50
+#define	ESCAPE	pown(2.0f, 8)
+
+// passer crab en global[global^2]
+r_x = 0.0f;
+r_y = 0.0f;
+r_z = 0.0f;
+float	itera = -1;
+// float   smooth = 0.0f;
+col_p = (float4)0.0f;
+	while ( ((int)(++itera < MAX_ITER) && !(pown(mad_el.x ,2) + pown(mad_el.y, 2) > ESCAPE)))
+	{
+		mad_el.z = mad_el.x;
+		mad_el.w = mad_el.y;
+		mad_el.x = pown(mad_el.z, 2) - pown(mad_el.w, 2) + (cos(3.14f+3.14f*timer[0]/180.0f)/2.0f);
+		mad_el.y = 2.0f * mad_el.z * mad_el.w + (sin(3.14f+3.14f*timer[0]/180.0f)/2.0f);
+		// r_x = 5.0f*(-3.14f+1.0f*tt);//(1.0f-2.0f*tt/3.14f);
+		// r_y = 5.0f*(-3.14f+1.0f*dd);//(1.0f-2.0f*dd/3.14f);
+		// r_z = mad_el.z*mad_el.w;
+		// r_z = pow(cos(r_x*r_x), 2) + pow(sin(r_y*r_y),2);//sin(3.14f * 3.14f * r_x * r_x )+cos(3.14f * 3.14f * r_y * r_y);
+
+		col_p.x += exp(-fabs(((float)(log((float)(ESCAPE)))/(+itera*(mad_el.y))))); // Orbit traps
+		col_p.y += exp(-fabs(((float)(log((float)(ESCAPE)))/(+itera*(mad_el.x)))));
+		col_p.z += exp(-fabs(((float)(log((float)(ESCAPE)))/(+itera*(mad_el.y + mad_el.x)))));
+		// col_p.x = ((itera + (log(log((float)itera+ESCAPE)) - log(log((float)mad_el.x + mad_el.y))) / log(2.0f)))/MAX_ITER; // joli
+		// col_p.x = (2.0f * sqrt(mad_el.x*mad_el.x+mad_el.y*mad_el.y) * log(sqrt(mad_el.x*mad_el.x+mad_el.y*mad_el.y))/sqrt(mad_el.z*mad_el.z+mad_el.w*mad_el.w));
+		// col_p.x = (itera + (log(log((float)ESCAPE)) - log(log((float)mad_el.x + mad_el.y))) / log(2.0f));
+		// col_p.y = (itera + (log(log((float)ESCAPE)) - log(log((float)mad_el.x + mad_el.y))) / log(2.0f));
+		// col_p.z = (itera + (log(log((float)ESCAPE)) - log(log((float)mad_el.x + mad_el.y))) / log(2.0f));
+	}
+
+
+// smooth = itera + 1.0f - log((log(pow(mad_el.x, 2.0f)+pow(mad_el.y, 2.0f)))/2.0f/log(2.0f))/log(2.0f);
+//smooth = (pown(mad_el.x ,2) + pown(mad_el.y, 2)) + 1.0f - log(log(sqrt(mad_el.x*mad_el.x + mad_el.y*mad_el.y))) / log(2.0f);
+//smooth = itera+log(log((float)ESCAPE*ESCAPE))/log(2.0f) - log(log(dot(sqrt(mad_el.x*mad_el.x + mad_el.y * mad_el.y), sqrt(mad_el.x*mad_el.x + mad_el.y * mad_el.y))))/log(2.0f);
+	// else
+	// {;
+	barrier(CLK_GLOBAL_MEM_FENCE);
+		/*if (itera==MAX_ITER)*/ r_x = (1.0f-tt/3.14f);//((4.0f + 2.0f * cos(tt)) * cos(dd));//(1.0f-tt/3.14f);
+		/*if (itera==MAX_ITER)*/ r_y = (1.0f-dd/3.14f);//((4.0f + 2.0f * cos((tt))) * sin(dd));//(1.0f-dd/3.14f);
+	if (!x)printf("%f, %f\n", mad_el.x, mad_el.y);
+	// col_p = (float)itera / (float)MAX_ITER;
+	// col_p += exp(-fabs(mad_el.x+mad_el.y));
+	col_p *= 255.0f/(float)itera;
+	// if (itera == MAX_ITER)
+		// {r_x=500.0f;r_y=r_x;
+		// col_p = 0.0f;
+		// }
+//    col_p = 255.0f*smooth/MAX_ITER;
+//	col_p = (col_p / 255.0f) * 1.0f;
+//	col_p.x = 1.0f - sin((float)(1 * 3.14f/3.0f)+log(3.14f*col_p.x));
+//	col_p.y = 1.0f - sin((float)(2 * 3.14f/3.0f)+log(3.14f*col_p.y));
+//	col_p.z = 1.0f - sin((float)(3 * 3.14f/3.0f)+log(3.14f*col_p.z));
+//	col_p*=255.0f;
+	// col_p.x = (int)(1.0f-sin((float)(1 * 3.14f/3.0f + /*0.1f**/(float)((pown(mad_el.x ,2) + pown(mad_el.y, 2))/4.0f) /** (timer[0]%360)*/ )));
+	// col_p.y = (int)(1.0f-sin((float)(2 * 3.14f/3.0f + /*0.1f**/(float)((pown(mad_el.x ,2) + pown(mad_el.y, 2))/4.0f) /** (timer[0]%360)*/ )));
+	// col_p.z = (int)(1.0f-sin((float)(3 * 3.14f/3.0f + /*0.1f**/(float)((pown(mad_el.x ,2) + pown(mad_el.y, 2))/4.0f) /** (timer[0]%360)*/ )));
+	// col_p *= 255.0f;
+	// col_p = clamp(col_p, 0.0f, 255.0f);
+	// col_p.x = (int)col_p.x <<8;
+	r_z = 2.0f * sin(tt);//+(itera/(float)MAX_ITER);
+	// if (itera <= MAX_ITER)
+		// r_z = mad_el.y*mad_el.y;
+
+		// col_p = 255.0f* ((float)(itera*(-mad_el.x+mad_el.y)/4.0f) / (float)MAX_ITER);
+		// r_x = 0.0f;//5.0f*(-3.14f+1.0f*tt);//r_x = 0.0f;//(1.0f-2.0f*tt/3.14f);//*(float)(((timer[0]) % MAX_ITER) / (float)MAX_ITER);//+mad_el.x;
+		// r_y = 0.0f;//5.0f*(-3.14f+1.0f*dd);//r_y = 0.0f;//(1.0f-2.0f*dd/3.14f);//*(float)(((timer[0]) % MAX_ITER) / (float)MAX_ITER);//+mad_el.y;
+		// r_z = 0.0f;//10.0f*(1.0f - (float)(((timer[0]) % MAX_ITER) / (float)MAX_ITER));
+		mad_el = float4(0.0f, 0.0f, 0.0f, 0.0f);
+		// col_p.x = (255.0f * (float)(((timer[0]) % MAX_ITER) / (float)MAX_ITER));
+		// col_p.y = (255.0f * (float)(((timer[0]) % MAX_ITER) / (float)MAX_ITER));
+		// col_p.x = (int)col_p.x << 16;
+		// col_p.y = (int)col_p.y << 8;
+	// }
+
+crab = (float4)(r_x, r_y, r_z, 0.0f);
+//crab.y *= cos(timer[0]/15.0f);
+//crab.x *= sin(timer[0]/15.0f);
+// if (!x && !y)
+	// printf("%f, %f, %f\n", 255.0f*(float)(((timer[0]) % MAX_ITER) / (float)MAX_ITER), mad_el.z, mad_el.w);
 
 	// g = c[0] +v1*0.5f+v2*0.5f;
 	// float	g_x;
@@ -341,23 +450,20 @@ crab = mix_vect(crab_a, crab_b, sin(3.14f*timer[0]/180.0f));
 //	g.x = -g.x;
 	r = dot(normalize(g - p), (g - p)); //dot((float4)clamp(g - p, 0.0f, 1.0f), ((float4)clamp(g - p, 0.0f, 1.0f)));
 	k = 0.1f;//100.0f * (1.0f - (clamp(sqrt(r), 0.01f, 0.990f)));//min(sqrt(r), 1.0f);
-	k = 10.0f*normalize((k)) * (s-vit);//normalize((s));
-	// k = 100.0f*normalize((k)) * normalize((s*vit));
+//	k = 10.0f*normalize((k)) * (s-vit);//normalize((s));
+	 k = 100.0f*normalize((k)) * normalize((s-vit));
 	 // k = ((g - p)) / (0.0f + dot(normalize(g-p),(g-p))) - k/700.0f;
 	// k = ((g - p)) / (dot(s-cbrt(crab),s-cbrt(crab))+0.0f + dot(normalize(g-p),(g-p))) - k/700.0f;
-	float4	v = (-(crab))+(g - p);
-	k = (v) / (0.0f + dot(normalize(v/*g-p*/),(v/*g-p*/))) - (k) /700.0f;//* 0.5f * (1 + sin(3.14f * timer[0] / 180.0f)) / 400.0f;
-	// k = (g-p) / (0.0f + dot(normalize(g-p),(g-p))) - (k) /700.0f;
-	// k = (g - p) / (0.1f + dot(normalize(g-p),(g-p))) - (k) * 0.5f * (1.0f + sin(3.14f * timer[0] / 180.0f)) / 400.0f;
+	float4	v = (-(crab))+(g - p);if(!x)printf("%f, %f, %f\n", v.x, v.y, v.z);
+	k = (v) / (0.001f + dot(normalize(v/*g-p*/),(v/*g-p*/))) - (k/*+(s-vit)*/) /100.0f;//* 0.5f * (1 + sin(3.14f * timer[0] / 180.0f)) / 400.0f;
+	
+	// k = (g - p) / (0.1f + dot(normalize(g-p),(g-p))) - (k) /700.0f;//* 0.5f * (1 + sin(3.14f * timer[0] / 180.0f)) / 400.0f;
 	// k = (g - p) / (0.01f * dot(normalize(g-p),(g-p))) - (k) /700.0f;//* 0.5f * (1 + sin(3.14f * timer[0] / 180.0f)) / 400.0f;
 	// k = (g - p) / (1000.01f + dot(normalize(g-p),(g-p))) - (k) /700.0f;//* 0.5f * (1 + sin(3.14f * timer[0] / 180.0f)) / 400.0f;
 	
-	// k = cbrt(-cbrt((g-p))+(g - p)) / (0.0f + dot(normalize(g-p),(g-p))) - (k)/200.0f;
-	// k = (((g-p)+normalize(vit-cbrt(acc)))) / (1000.01f + dot(normalize(g-p),(g-p))) - k/8500.0f;//normalize(cbrt(k))*length((g-p));//200.0f;
-	// k = (((g-p)+normalize(vit-cbrt(acc)))) / (100.01f + dot(normalize(g-p),(g-p))) - k/8500.0f;
-	// k = (((g-p)+normalize(vit-cbrt(acc)))) / (100.01f * dot(normalize(g-p),(g-p))) - k/8500.0f;
-	// k = (((g-p)+normalize(vit-cbrt(acc)))) / (100.01f * dot(normalize(g-p),(g-p))) - k/8500.0f;
-	acc = k;// /60.0f;
+	// k = cbrt(-cbrt((g-p))+(g - p)) / (0.0f + dot(normalize(g-p),(g-p))) - k/200.0f;
+	// k = (((g-p))) / (0.01f + dot(normalize(g-p),(g-p))) - k/8500.0f;//normalize(cbrt(k))*length((g-p));//200.0f;
+	acc = k;///30.0f;
 	// acc = acc_tmp;
 
 	vit += (acc);
@@ -367,13 +473,15 @@ crab = mix_vect(crab_a, crab_b, sin(3.14f*timer[0]/180.0f));
 //	else
 //		p -= vit ;
 
-	p += (vit);//p=crab;
+	p += (vit)/2.0f;p=crab;
 	}
 	k = normalize(p - cam);
 	k = p - dot(cam + data->dir * d, data->dir) * data->dir;
 	m_m = (int2)((int)(data->w * dot(k - c[0], normalize(v1)) / length(v1)),
 		(int)(data->h * (1.0f - dot(k - c[0], normalize(v2)) / length(v2))));
-	// r = length(p - g);
+	r = length(p - g);
+
+//printf("color is : %d\n", hsv(col_p));
 
 	if (m_m[0] >= 0 && m_m[0] < data->w && m_m[1] >= 0 && m_m[1] < data->h &&
 		dot(data->dir, p - cam) > 0)
@@ -382,17 +490,16 @@ crab = mix_vect(crab_a, crab_b, sin(3.14f*timer[0]/180.0f));
 	else
 		m_m = (int2)(0);
 	int in = m_m[0] + m_m[1] * data->w;
-	float4	pm = p - cam;
-	float len = dot(pm, pm);
+	float len = (p+cam).x+(p+cam).y+(p+cam).z;//dot((p - cam), p - cam);
 	if (len < z[in] || z[in] == -1)
 	{
 		atomic_xchg(&z[in], len);
 		atomic_xchg(&i[in], in);
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-	if (!col_p.x && !col_p.y && !col_p.z)
-		col_p =(float4)(255.0f);
-	 if (in == i[in])
+	// if (!col_p.x && !col_p.y && !col_p.z)
+		// col_p =(float4)(255.0f);
+	// if (in == i[in])
 		img[in] = ((int)col_p.x << 16) + ((int)col_p.y << 8) +col_p.z;//hsv(col_p);// write_imageui(img, (int2)(m_m[0], m_m[1]), (uint4)hsv(col_p));//img[m_m[0] + m_m[1] * data->w] = hsv(col_p);
 	pos_par[ind] = p;
 	spd_par[ind] = vit;
@@ -400,4 +507,21 @@ crab = mix_vect(crab_a, crab_b, sin(3.14f*timer[0]/180.0f));
 	m_par[ind] = m_m;
 	col[ind] = col_p;
 
+//	if (x == 0 && y == 0)printf("timer[0] == %lf\n", (float)timer[0]);//printf("r==%f, ex==%f, ey==%f, ez==%f, eX/r==%f, eY/r==%f, eZ/r==%f\n", r, e.x, e.y, e.z, e.x / r, e.y / r, e.z / r);
+//	{printf("rel_mov == %f, old_g.x == %f, old_g.u == %f, g.x == %f, g.y == %f\n", rel_mov, data->old_g.x, data->old_g.y, data->g.x, data->g.y);
+//		printf("dir : %5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f | %5.2f %5.2f\n",
+//			data->dir.x, data->dir.y, data->dir.z, g.x, g.y, g.z,
+//			dot(k - c[0], normalize(v1)) / length(v1),
+//			1.0f - dot(k - c[0], normalize(v2)) / length(v2));
+//		printf("%5.2f %5.2f %5.2f | %7.4f %7.4f %7.4f | %7.4f %7.4f %7.4f\n",
+//			pos_par[ind].x, pos_par[ind].y, pos_par[ind].z,
+//			vit.x, p.v.y, p.v.z, acc_par[ind].x, acc_par[ind].y, acc_par[ind].z);
+//		printf("c : %5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f |",
+//			c[0].x, c[0].y, c[0].z, c[1].x, c[1].y, c[1].z, c[2].x,
+//			c[2].y, c[2].z);
+//		printf("%5.2f %5.2f %5.2f | %5.2f %5.2f %5.2f \n",
+//			v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+//		printf("%5.2f %5.2f %5.2f | %d %d | %5.2f %5.2f %5.2f\n",
+//			k.x, k.y, k.z, m_par[ind], m_par[ind].y);
+//	}
 }

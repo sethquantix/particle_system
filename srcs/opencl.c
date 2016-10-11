@@ -51,7 +51,7 @@ static void			init_kernels(t_env *e)
 	seed.y = 1354343545;
 	init = clCreateKernel(e->program, "init", &err);
 	e->particle = clCreateKernel(e->program, "particle", &err);
-
+	e->zeroes = clCreateKernel(e->program, "zeroes", &err);
 	clSetKernelArg(e->particle, 0, sizeof(cl_mem), &e->pos_par);
 	clSetKernelArg(e->particle, 1, sizeof(cl_mem), &e->acc_par);
 	clSetKernelArg(e->particle, 2, sizeof(cl_mem), &e->spd_par);
@@ -69,6 +69,14 @@ static void			init_kernels(t_env *e)
 	clSetKernelArg(init, 0, sizeof(cl_uint2), &seed);
 	clSetKernelArg(e->particle, 7, sizeof(cl_mem), &e->buf);
 	clSetKernelArg(e->particle, 8, sizeof(cl_mem), &e->timer);
+	clSetKernelArg(e->particle, 9, sizeof(cl_mem), &e->switcher);
+	clSetKernelArg(e->particle, 11, sizeof(cl_mem), &e->z);
+	clSetKernelArg(e->particle, 12, sizeof(cl_mem), &e->i);
+	clSetKernelArg(e->zeroes, 0, sizeof(cl_mem), &e->z);
+	clSetKernelArg(e->zeroes, 1, sizeof(cl_mem), &e->i);
+	int j =-1;
+	clEnqueueWriteBuffer(e->queue, e->switcher, CL_TRUE, 0, sizeof(int),
+		&j, 0, NULL, NULL);
 	if (err)
 		die("Couldnt create buffer on VRAM. Cause reasons.", e, EXIT_FAILURE);
 	ft_printf("{CGRNVRAM buffer allocated.\n}");
@@ -109,14 +117,18 @@ static void			opencl_memory(t_env *e)
 			sizeof(cl_uint2) * NUM_P, NULL, &err);
 	e->mass = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(cl_float3) * NUM_P, NULL, &err);
-
 	e->buf = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(int) * WIDTH * HEIGHT, NULL, &err);
-
 	e->cl_data = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(t_data), NULL, &err);
 	e->timer = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
 			sizeof(cl_long), NULL, &err);
+	e->switcher = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(cl_int), NULL, &err);
+	e->z = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(float) * WIDTH * HEIGHT, NULL, &err);
+	e->i = clCreateBuffer(e->context, CL_MEM_READ_WRITE,
+			sizeof(int) * WIDTH * HEIGHT, NULL, &err);
 	init_kernels(e);
 
 }

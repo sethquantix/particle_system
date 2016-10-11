@@ -39,3 +39,16 @@ void	rotate_cam(int keycode, void *env)
 				((keycode == 0x7C) - (keycode == 0x7B)) * RAD_SPEED, 0.0f);
 	e->rot = float3(v.x + r.x, v.y + r.y, v.z + r.z);
 }
+
+void	toggle(int keycode, void *env)
+{
+	t_env		*e;	
+	int			i;
+
+	e = (t_env *)env;
+	i = -1;
+	while (++i < NUM_KEYS)
+		if (e->keys[i].keycode == keycode)
+			e->keys[i].pressed = 0;
+	e->t ^= 1;
+}

@@ -44,10 +44,11 @@ void	draw(t_env *e)
 {
 	int				i;
 	struct timeval	time_now;
+	const size_t	g[2] = {WIDTH, HEIGHT};
 
 	i = -1;
-	static long ouch;
-	ouch++;
+	static long ouch = 0;
+	ouch += !!e->t;
 	gettimeofday(&time_now, NULL);
 	rotate(e);
 	while (++i < NUM_KEYS)
@@ -68,6 +69,9 @@ void	draw(t_env *e)
 	//printf("hellooooooo\n");
 //	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->img);
 	clSetKernelArg(e->particle, 7, sizeof(cl_image), &e->buf);
+	clSetKernelArg(e->particle, 10, sizeof(int), &e->t);
+	clEnqueueNDRangeKernel(e->queue, e->zeroes, 2, NULL,
+		g, e->local, 0, NULL, NULL);
 	clEnqueueNDRangeKernel(e->queue, e->particle, 2, NULL,
 		e->global, e->local, 0, NULL, NULL);
 	clFinish(e->queue);

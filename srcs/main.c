@@ -46,6 +46,7 @@ void	functions(t_env *e)
 	e->keys[7] = new_key(0X07D, &rotate_cam); //DOWN
 	e->keys[8] = new_key(0x07C, &rotate_cam); //RIGHT
 	e->keys[9] = new_key(0x07E, &rotate_cam); //UP
+	e->keys[10] = new_key(0x031, &toggle); //UP
 }
 
 void	values(t_env *e)
